@@ -1,28 +1,25 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento Familiar</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1117" id="themeColorMeta">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- 🔐 Tela de Login -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-header">
-                <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
+                <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <h2>Orçamento Familiar</h2>
             </div>
             <form id="loginForm">
-                <div class="form-group">
-                    <label for="password">Senha de acesso</label>
-                    <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
-                </div>
+                <div class="form-group"><label for="password">Senha de acesso</label><input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password"></div>
                 <p id="loginError" class="login-error"></p>
                 <button type="submit" class="btn btn-primary btn-login">Entrar</button>
             </form>
@@ -33,12 +30,11 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <h1>Orçamento Familiar</h1>
             </div>
             <div class="header-actions">
+                <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema">🌓</button>
                 <button id="btnExportPDF" class="btn btn-secondary" title="Exportar PDF">📄 PDF</button>
                 <button id="btnExport" class="btn btn-secondary" title="Exportar JSON">💾 Backup</button>
                 <button id="btnImport" class="btn btn-secondary" title="Importar Backup">📥 Restaurar</button>
@@ -56,44 +52,23 @@
         </section>
 
         <section class="summary-cards">
-            <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p></div>
-            <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p></div>
+            <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p><span class="trend" id="trendIncome"></span></div>
+            <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p><span class="trend" id="trendExpense"></span></div>
             <div class="card card-balance" id="cardBalance"><div class="card-header"><span>⚖️ Saldo</span></div><p class="card-value" id="totalBalance">R$ 0,00</p></div>
-            <div class="card card-savings">
-                <div class="card-header"><span>🎯 Meta Economizada</span></div>
-                <p class="card-value" id="totalSavings">R$ 0,00</p>
-                <div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div>
-                <div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div>
-                <span class="savings-percent" id="savingsPercent">0%</span>
-            </div>
+            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p><div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div><div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div><span class="savings-percent" id="savingsPercent">0%</span></div>
         </section>
 
         <section class="section">
-            <div class="section-header">
-                <h3>💰 Receitas</h3>
-                <button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button>
-            </div>
+            <div class="section-header"><h3>💰 Receitas</h3><button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button></div>
             <div class="items-list" id="incomeList"></div>
             <div class="empty-state" id="incomeEmpty"><p>Nenhuma receita adicionada</p></div>
         </section>
 
         <section class="section">
-            <div class="section-header">
-                <h3>📋 Despesas</h3>
-                <button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button>
-            </div>
-            <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa por nome ou categoria...">
-            <div class="filter-bar">
-                <button class="filter-btn active" data-filter="all">Todas</button>
-                <button class="filter-btn" data-filter="moradia">🏠 Moradia</button>
-                <button class="filter-btn" data-filter="alimentacao">🍔 Alimentação</button>
-                <button class="filter-btn" data-filter="transporte">🚗 Transporte</button>
-                <button class="filter-btn" data-filter="saude">💊 Saúde</button>
-                <button class="filter-btn" data-filter="educacao">📚 Educação</button>
-                <button class="filter-btn" data-filter="lazer">🎮 Lazer</button>
-                <button class="filter-btn" data-filter="vestuario">👕 Vestuário</button>
-                <button class="filter-btn" data-filter="outros">📦 Outros</button>
-            </div>
+            <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button></div>
+            <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa...">
+            <div class="filter-bar" id="filterBar"></div>
+            <div class="goals-grid" id="goalsGrid"></div>
             <div class="items-list" id="expenseList"></div>
             <div class="empty-state" id="expenseEmpty"><p>Nenhuma despesa adicionada</p></div>
         </section>
@@ -105,12 +80,7 @@
 
         <section class="section">
             <div class="section-header"><h3>📅 Histórico Mensal</h3></div>
-            <div class="history-table-wrapper">
-                <table class="history-table" id="historyTable">
-                    <thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
-                    <tbody id="historyBody"></tbody>
-                </table>
-            </div>
+            <div class="history-table-wrapper"><table class="history-table" id="historyTable"><thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody id="historyBody"></tbody></table></div>
             <div class="empty-state" id="historyEmpty"><p>Histórico aparecerá conforme você preencher os meses</p></div>
         </section>
     </main>
@@ -118,73 +88,29 @@
     <!-- Modal -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Adicionar Item</h3>
-                <button class="btn btn-close" id="btnCloseModal">✖</button>
-            </div>
+            <div class="modal-header"><h3 id="modalTitle">Adicionar Item</h3><button class="btn btn-close" id="btnCloseModal">✖</button></div>
             <form id="itemForm">
-                <input type="hidden" id="itemId">
-                <input type="hidden" id="itemType">
-                
-                <div class="form-group">
+                <input type="hidden" id="itemId"><input type="hidden" id="itemType">
+                <div class="form-group" style="position:relative;">
                     <label for="itemDescription">Descrição</label>
-                    <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required>
+                    <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required autocomplete="off">
+                    <div class="smart-suggestion" id="smartSuggestion"></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="itemAmount">Valor (R$)</label>
-                        <input type="text" id="itemAmount" placeholder="0,00" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="itemFrequency">Frequência</label>
-                        <select id="itemFrequency">
-                            <option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option>
-                            <option value="semanal">Semanal</option><option value="anual">Anual</option>
-                            <option value="unico">Único</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div>
+                    <div class="form-group"><label for="itemFrequency">Frequência</label><select id="itemFrequency"><option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option><option value="semanal">Semanal</option><option value="anual">Anual</option><option value="unico">Único</option></select></div>
                 </div>
-                
-                <div class="form-group" id="categoryGroup" style="display:none;">
-                    <label for="itemCategory">Categoria</label>
-                    <select id="itemCategory">
-                        <option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option>
-                        <option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option>
-                        <option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option>
-                        <option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="itemDueDate">Dia de Vencimento</label>
-                    <input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia">
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="itemRecurring" checked>
-                        <span>🔄 Item recorrente (se repete mensalmente)</span>
-                    </label>
-                </div>
-
-                <div class="form-group" id="scopeGroup" style="display:none; background:var(--bg-input); padding:0.75rem; border-radius:var(--radius-sm);">
-                    <label>Aplicar alteração em:</label>
-                    <div class="scope-options">
-                        <label class="scope-option"><input type="radio" name="scope" value="current"> Apenas este mês</label>
-                        <label class="scope-option"><input type="radio" name="scope" value="all" checked> Todos os meses</label>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button>
-                </div>
+                <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select></div>
+                <div class="form-group"><label for="itemDueDate">Dia de Vencimento</label><input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia"></div>
+                <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="itemRecurring" checked><span>🔄 Item recorrente (se repete mensalmente)</span></label></div>
+                <div class="form-group" id="scopeGroup" style="display:none; background:var(--bg-input); padding:0.75rem; border-radius:var(--radius-sm);"><label>Aplicar alteração em:</label><div class="scope-options"><label class="scope-option"><input type="radio" name="scope" value="current"> Apenas este mês</label><label class="scope-option"><input type="radio" name="scope" value="all" checked> Todos os meses</label></div></div>
+                <div class="form-actions"><button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button><button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button></div>
             </form>
         </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-    <footer class="footer"><p>Orçamento Familiar &copy; 2026 — Dados salvos localmente</p></footer>
+    <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p></footer>
     <script src="script.js"></script>
 </body>
 </html>
