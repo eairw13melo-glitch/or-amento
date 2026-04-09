@@ -9,7 +9,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-
+    <!-- 🔐 Tela de Login -->
+<div id="loginScreen" class="login-screen">
+    <div class="login-card">
+        <div class="login-header">
+            <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <h2>Orçamento Familiar</h2>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password">Senha de acesso</label>
+                <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
+            </div>
+            <p id="loginError" class="login-error"></p>
+            <button type="submit" class="btn btn-primary btn-login">Entrar</button>
+        </form>
+        <p class="login-hint">Dica: a senha padrão é <strong>familia2026</strong></p>
+    </div>
+</div>
+    
     <!-- Header -->
     <header class="header">
         <div class="header-content">
