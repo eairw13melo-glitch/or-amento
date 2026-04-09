@@ -1,12 +1,11 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - SCRIPT COMPLETO
+   ORÇAMENTO FAMILIAR - SISTEMA RECORRENTE
    ============================================ */
 
-// 🔐 Configuração de Segurança (Front-end)
 const APP_CONFIG = {
-    password: 'familia2026', // ← Altere sua senha aqui
+    password: 'familia2026',
     sessionKey: 'budgetAppSession',
-    sessionDuration: 7 * 24 * 60 * 60 * 1000 // 7 dias
+    sessionDuration: 7 * 24 * 60 * 60 * 1000
 };
 
 const APP_STATE = {
@@ -20,21 +19,69 @@ const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const CATEGORY_LABELS = { moradia:'🏠 Moradia', alimentacao:'🍔 Alimentação', transporte:'🚗 Transporte', saude:'💊 Saúde', educacao:'📚 Educação', lazer:'🎮 Lazer', vestuario:'👕 Vestuário', outros:'📦 Outros' };
 const CATEGORY_COLORS = { moradia:'#e17055', alimentacao:'#fdcb6e', transporte:'#74b9ff', saude:'#55efc4', educacao:'#a29bfe', lazer:'#fd79a8', vestuario:'#00cec9', outros:'#636e72' };
 
-// ─── STORAGE ──────────────────────────────
+// ─── STORAGE & MIGRAÇÃO ───────────────────
 function loadData() {
-    try { const d = localStorage.getItem('budgetAppData'); return d ? JSON.parse(d) : {}; } 
-    catch { return {}; }
+    try {
+        const raw = localStorage.getItem('budgetAppData');
+        if (!raw) return { recurringItems: [], monthOverrides: {} };
+        
+        let data = JSON.parse(raw);
+        
+        // Migração automática do formato antigo para o novo
+        if (data.recurringItems === undefined && Object.keys(data).some(k => /\d{4}-\d{2}/.test(k))) {
+            const newData = { recurringItems: [], monthOverrides: {} };
+            Object.keys(data).forEach(k => {
+                data[k].income.forEach(i => {
+                    newData.recurringItems.push({ ...i, isRecurring: true, type: 'income' });
+                });
+                data[k].expenses.forEach(i => {
+                    newData.recurringItems.push({ ...i, isRecurring: true, type: 'expense' });
+                });
+            });
+            data = newData;
+            saveData(data);
+            showToast('Dados migrados para o novo sistema! 🔄', 'success');
+        }
+        
+        return data.recurringItems ? data : { recurringItems: [], monthOverrides: {} };
+    } catch { return { recurringItems: [], monthOverrides: {} }; }
 }
+
 function saveData(data) {
     try { localStorage.setItem('budgetAppData', JSON.stringify(data)); } 
     catch { showToast('Erro ao salvar!', 'error'); }
 }
+
 function getMonthKey(m, y) { return `${y}-${String(m+1).padStart(2,'0')}`; }
+
+// Obtém a visão consolidada do mês (Recorrentes + Overrides)
 function getMonthData(m, y) {
     const data = loadData();
     const key = getMonthKey(m, y);
-    if (!data[key]) data[key] = { income: [], expenses: [] };
-    return { data, key, monthData: data[key] };
+    const overrides = data.monthOverrides[key] || { added: [], removed: [], modified: {} };
+    
+    // Inicia com recorrentes
+    let items = [...data.recurringItems];
+    
+    // Aplica modificações específicas do mês
+    items = items.map(item => {
+        if (overrides.modified[item.id]) {
+            return { ...item, ...overrides.modified[item.id] };
+        }
+        return item;
+    });
+    
+    // Remove itens excluídos neste mês
+    items = items.filter(item => !overrides.removed.includes(item.id));
+    
+    // Adiciona itens avulsos criados neste mês
+    items = items.concat(overrides.added);
+    
+    // Separa por tipo
+    const income = items.filter(i => i.type === 'income');
+    const expenses = items.filter(i => i.type === 'expense');
+    
+    return { income, expenses, key };
 }
 
 // ─── UTILITÁRIOS ──────────────────────────
@@ -42,7 +89,7 @@ function generateId() { return Date.now().toString(36) + Math.random().toString(
 function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); }
 function parseCurrency(str) { if (typeof str === 'number') return str; return parseFloat(str.replace(/[^\d,]/g, '').replace(',','.')) || 0; }
 function normalizeValue(item) {
-    let v = item.amount;
+    let v = item.amount || 0;
     const f = item.frequency || 'mensal';
     if (f === 'semanal') v *= 4.33;
     else if (f === 'quinzenal') v *= 2;
@@ -51,11 +98,8 @@ function normalizeValue(item) {
 }
 function showToast(msg, type='success') {
     const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
+    c.appendChild(t); setTimeout(() => t.remove(), 3000);
 }
 
 // ─── AUTH ─────────────────────────────────
@@ -74,10 +118,8 @@ function login(pwd) {
     if (pwd === APP_CONFIG.password) {
         sessionStorage.setItem(APP_CONFIG.sessionKey, JSON.stringify({ token: btoa(pwd), ts: Date.now() }));
         document.getElementById('loginScreen').classList.add('hidden');
-        showToast('Bem-vindo! 👋');
-        return true;
-    }
-    return false;
+        showToast('Bem-vindo! 👋'); return true;
+    } return false;
 }
 function logout() { sessionStorage.removeItem(APP_CONFIG.sessionKey); location.reload(); }
 
@@ -88,9 +130,9 @@ function updateMonthDisplay() {
 }
 
 function updateSummary() {
-    const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const inc = monthData.income.reduce((s,i) => s + normalizeValue(i), 0);
-    const exp = monthData.expenses.reduce((s,i) => s + normalizeValue(i), 0);
+    const { income, expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const inc = income.reduce((s,i) => s + normalizeValue(i), 0);
+    const exp = expenses.reduce((s,i) => s + normalizeValue(i), 0);
     const bal = inc - exp;
     const goal = getSavingsGoal();
     const pct = goal > 0 ? (Math.max(0, bal) / goal) * 100 : 0;
@@ -111,25 +153,21 @@ function updateSummary() {
 }
 
 function getSavingsGoal() {
-    const el = document.getElementById('savingsGoal');
-    if (!el) return 500;
-    return parseCurrency(el.value) || 500;
+    return parseCurrency(document.getElementById('savingsGoal').value) || 500;
 }
 
 function renderItems(type) {
-    const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const { income, expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const listId = type === 'income' ? 'incomeList' : 'expenseList';
     const emptyId = type === 'income' ? 'incomeEmpty' : 'expenseEmpty';
     const listEl = document.getElementById(listId);
     const emptyEl = document.getElementById(emptyId);
-
-    let items = type === 'income' ? monthData.income : monthData.expenses;
+    let items = type === 'income' ? income : expenses;
     
-    // Filtros e busca
     if (type === 'expense') {
         if (APP_STATE.currentFilter !== 'all') items = items.filter(i => i.category === APP_STATE.currentFilter);
         const search = document.getElementById('searchExpenses')?.value.toLowerCase() || '';
-        if (search) items = items.filter(i => i.description.toLowerCase().includes(search) || i.category?.includes(search));
+        if (search) items = items.filter(i => i.description.toLowerCase().includes(search) || (i.category||'').includes(search));
     }
 
     listEl.innerHTML = '';
@@ -142,23 +180,25 @@ function renderItems(type) {
         const val = normalizeValue(item);
         const cls = type === 'income' ? 'income' : 'expense';
         const sign = type === 'income' ? '+' : '-';
+        
+        const badgeClass = item.isRecurring ? 'badge-recurring' : 'badge-unique';
+        const badgeText = item.isRecurring ? '🔄 Recorrente' : '📌 Avulso';
+        
         let catHTML = type === 'expense' && item.category ? `<span class="item-category">${CATEGORY_LABELS[item.category]||item.category}</span>` : '';
         let freqHTML = item.frequency && item.frequency !== 'mensal' ? `<span class="item-frequency">${item.frequency}</span>` : '';
         let dueHTML = item.dueDate ? `<span class="item-due">Venc. dia ${item.dueDate}</span>` : '';
 
         card.innerHTML = `
             <div class="item-info">
-                <div class="item-description">${item.description}</div>
+                <div class="item-description">
+                    ${item.description} <span class="badge ${badgeClass}">${badgeText}</span>
+                </div>
                 <div class="item-meta">${catHTML}${freqHTML}${dueHTML}</div>
             </div>
             <div class="item-value ${cls}">${sign} ${formatCurrency(val)}</div>
             <div class="item-actions">
-                <button class="btn btn-edit" onclick="editItem('${type}','${item.id}')" title="Editar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')" title="Excluir">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
+                <button class="btn btn-edit" onclick="editItem('${type}','${item.id}')" title="Editar">✏️</button>
+                <button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')" title="Excluir">🗑️</button>
             </div>
         `;
         listEl.appendChild(card);
@@ -166,17 +206,17 @@ function renderItems(type) {
 }
 
 function renderChart() {
-    const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
-    monthData.expenses.forEach(i => { totals[i.category||'outros'] = (totals[i.category||'outros']||0) + normalizeValue(i); });
+    expenses.forEach(i => { totals[i.category||'outros'] = (totals[i.category||'outros']||0) + normalizeValue(i); });
     
     const canvas = document.getElementById('categoryChart');
-    const ctx = canvas.getContext('2d');
     const container = document.getElementById('chartContainer');
     const entries = Object.entries(totals);
     
-    if (entries.length === 0) { container.innerHTML = '<div class="empty-state"><p>Sem dados para exibir</p></div>'; return; }
     container.innerHTML = '';
+    if (entries.length === 0) { container.innerHTML = '<div class="empty-state"><p>Sem dados para exibir</p></div>'; return; }
+    
     const cv = document.createElement('canvas');
     cv.id = 'categoryChart';
     container.appendChild(cv);
@@ -219,16 +259,22 @@ function renderHistory() {
     const tbody = document.getElementById('historyBody');
     const emptyEl = document.getElementById('historyEmpty');
     tbody.innerHTML = '';
-    const keys = Object.keys(data).sort().reverse();
-    if (keys.length===0) { emptyEl.style.display='block'; return; }
+    
+    // Coleta todas as chaves de overrides + meses gerados
+    const keys = new Set(Object.keys(data.monthOverrides));
+    keys.add(getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear));
+    
+    const sortedKeys = Array.from(keys).sort().reverse();
+    if (sortedKeys.length === 0) { emptyEl.style.display='block'; return; }
     emptyEl.style.display='none';
     
-    keys.forEach(k => {
-        const md = data[k];
-        const inc = md.income.reduce((s,i)=>s+normalizeValue(i),0);
-        const exp = md.expenses.reduce((s,i)=>s+normalizeValue(i),0);
-        const bal = inc-exp;
+    sortedKeys.forEach(k => {
+        if (!/^\d{4}-\d{2}$/.test(k)) return;
         const [y,m] = k.split('-');
+        const { income, expenses } = getMonthData(parseInt(m)-1, parseInt(y));
+        const inc = income.reduce((s,i)=>s+normalizeValue(i),0);
+        const exp = expenses.reduce((s,i)=>s+normalizeValue(i),0);
+        const bal = inc-exp;
         const cls = bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral';
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cls}">${formatCurrency(bal)}</td>`;
@@ -237,21 +283,21 @@ function renderHistory() {
 }
 
 function checkDueAlerts() {
-    const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const today = new Date().getDate();
-    const upcoming = monthData.expenses.filter(i => i.dueDate && i.dueDate >= today && i.dueDate <= today+3);
+    const upcoming = expenses.filter(i => i.dueDate && i.dueDate >= today && i.dueDate <= today+3);
     if (upcoming.length > 0) showToast(`⚠️ ${upcoming.length} vencimento(s) nos próximos 3 dias!`, 'error');
 }
 
 function exportPDF() {
-    const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const inc = monthData.income.reduce((s,i)=>s+normalizeValue(i),0);
-    const exp = monthData.expenses.reduce((s,i)=>s+normalizeValue(i),0);
+    const { income, expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const inc = income.reduce((s,i)=>s+normalizeValue(i),0);
+    const exp = expenses.reduce((s,i)=>s+normalizeValue(i),0);
     const bal = inc-exp;
     let t = `ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n`;
     t += '═'.repeat(40)+'\n\n';
     t += `RECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\nDESPESAS POR CATEGORIA:\n`;
-    const cats = {}; monthData.expenses.forEach(i => cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i));
+    const cats = {}; expenses.forEach(i => cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i));
     Object.entries(cats).forEach(([c,v]) => t += `• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);
     
     const w = window.open('','_blank');
@@ -267,28 +313,54 @@ function applyViewOnly() {
     document.querySelectorAll('input, select, button[type="submit"]').forEach(el => el.disabled = true);
 }
 
-// ─── CRUD ─────────────────────────────────
+// ─── CRUD COM SUPORTE A RECORRÊNCIA ───────
 function openModal(type, id=null) {
     const ov = document.getElementById('modalOverlay');
     const title = document.getElementById('modalTitle');
     const catGrp = document.getElementById('categoryGroup');
+    const scopeGrp = document.getElementById('scopeGroup');
     
     document.getElementById('itemType').value = type;
+    document.getElementById('itemId').value = id || '';
+    
     if (type==='expense') { catGrp.style.display='block'; title.textContent = id?'Editar Despesa':'Adicionar Despesa'; }
     else { catGrp.style.display='none'; title.textContent = id?'Editar Receita':'Adicionar Receita'; }
 
+    scopeGrp.style.display = 'none';
+    
     if (id) {
-        const { monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-        const items = type==='income'?monthData.income:monthData.expenses;
-        const item = items.find(i=>i.id===id);
+        // Busca nos recorrentes primeiro
+        const data = loadData();
+        let item = data.recurringItems.find(i => i.id === id);
+        
+        // Se não encontrou, busca nos overrides do mês atual
+        if (!item) {
+            const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+            const overrides = data.monthOverrides[key] || { added: [] };
+            item = overrides.added.find(i => i.id === id);
+            
+            // Se for modificação de recorrente
+            if (!item && overrides.modified[id]) {
+                const base = data.recurringItems.find(i => i.id === id);
+                item = base ? { ...base, ...overrides.modified[id] } : null;
+            }
+        }
+        
         if (item) {
             document.getElementById('itemDescription').value = item.description;
             document.getElementById('itemAmount').value = item.amount.toString().replace('.',',');
             document.getElementById('itemFrequency').value = item.frequency||'mensal';
             document.getElementById('itemDueDate').value = item.dueDate||'';
+            document.getElementById('itemRecurring').checked = item.isRecurring;
             if (type==='expense') document.getElementById('itemCategory').value = item.category||'outros';
+            
+            // Mostra opção de escopo apenas se for recorrente
+            if (item.isRecurring) scopeGrp.style.display = 'block';
         }
-    } else document.getElementById('itemForm').reset();
+    } else {
+        document.getElementById('itemForm').reset();
+        document.getElementById('itemRecurring').checked = true; // Default recorrente
+    }
 
     ov.classList.add('active');
     setTimeout(()=>document.getElementById('itemDescription').focus(),100);
@@ -304,30 +376,85 @@ function saveItem(e) {
     const freq = document.getElementById('itemFrequency').value;
     const due = parseInt(document.getElementById('itemDueDate').value)||null;
     const cat = type==='expense'?document.getElementById('itemCategory').value:null;
+    const isRecurring = document.getElementById('itemRecurring').checked;
+    const editId = document.getElementById('itemId').value;
     
     if (!desc) return showToast('Informe a descrição!','error');
     if (!amt || amt<=0) return showToast('Valor inválido!','error');
 
-    const { data, key, monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const items = type==='income'?monthData.income:monthData.expenses;
-    const item = { id: document.getElementById('itemId').value||generateId(), description:desc, amount:amt, frequency:freq, dueDate:due, category:cat };
+    const data = loadData();
+    const newItem = { id: editId||generateId(), description:desc, amount:amt, frequency:freq, dueDate:due, category:cat, type, isRecurring };
+
+    if (editId) {
+        // Edição
+        const scope = document.querySelector('input[name="scope"]:checked')?.value || (isRecurring ? 'all' : 'current');
+        
+        if (isRecurring && scope === 'all') {
+            const idx = data.recurringItems.findIndex(i => i.id === editId);
+            if (idx !== -1) data.recurringItems[idx] = newItem;
+            showToast('Item recorrente atualizado para todos os meses! 🔄');
+        } else {
+            // Altera apenas este mês
+            const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+            if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {} };
+            data.monthOverrides[key].modified[editId] = newItem;
+            showToast('Alteração aplicada apenas a este mês! 📅');
+        }
+    } else {
+        // Novo item
+        if (isRecurring) {
+            data.recurringItems.push(newItem);
+            showToast('Item recorrente criado! 🔄');
+        } else {
+            const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+            if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {} };
+            data.monthOverrides[key].added.push(newItem);
+            showToast('Item avulso adicionado a este mês! 📌');
+        }
+    }
     
-    const editId = document.getElementById('itemId').value;
-    if (editId) { const idx = items.findIndex(i=>i.id===editId); if(idx!==-1) items[idx]=item; showToast('Atualizado!'); }
-    else { items.push(item); showToast('Adicionado!'); }
-    
-    data[key] = monthData; saveData(data); closeModal(); renderAll();
+    saveData(data); closeModal(); renderAll();
 }
 
 function deleteItem(type, id) {
-    if (!confirm('Excluir este item?')) return;
-    const { data, key, monthData } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const items = type==='income'?monthData.income:monthData.expenses;
-    const idx = items.findIndex(i=>i.id===id);
-    if (idx!==-1) { items.splice(idx,1); data[key]=monthData; saveData(data); showToast('Excluído!'); renderAll(); }
+    if (!confirm('Deseja excluir este item?')) return;
+    const data = loadData();
+    const isRecurring = data.recurringItems.some(i => i.id === id);
+    let scope = 'current';
+    
+    if (isRecurring) {
+        const choice = prompt('Excluir APENAR deste mês (1) ou de TODOS os meses (2)?\nDigite 1 ou 2:');
+        if (choice === '2') scope = 'all';
+        else if (choice !== '1') return;
+    }
+
+    if (isRecurring && scope === 'all') {
+        data.recurringItems = data.recurringItems.filter(i => i.id !== id);
+        // Limpa overrides associados
+        Object.keys(data.monthOverrides).forEach(k => {
+            const ov = data.monthOverrides[k];
+            ov.removed = ov.removed.filter(rid => rid !== id);
+            delete ov.modified[id];
+        });
+        showToast('Item excluído permanentemente de todos os meses! 🗑️');
+    } else {
+        const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+        if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {} };
+        
+        // Se era recorrente, adiciona à lista de removidos deste mês
+        if (isRecurring) {
+            data.monthOverrides[key].removed.push(id);
+        } else {
+            // Era avulso, remove da lista de adicionados
+            data.monthOverrides[key].added = data.monthOverrides[key].added.filter(i => i.id !== id);
+        }
+        showToast('Item removido apenas deste mês! 📅');
+    }
+    
+    saveData(data); renderAll();
 }
 
-function editItem(type, id) { openModal(type, id); document.getElementById('itemId').value = id; }
+function editItem(type, id) { openModal(type, id); }
 
 function exportData() {
     const d = loadData();
@@ -342,7 +469,16 @@ function importData(file) {
     r.onload = e => {
         try {
             const imp = JSON.parse(e.target.result);
-            if (typeof imp==='object') { const merged={...loadData(), ...imp}; saveData(merged); showToast('Restaurado!'); renderAll(); }
+            if (typeof imp==='object') { 
+                const existing = loadData();
+                // Merge simples: sobrescreve recorrentes e adiciona overrides
+                const merged = { 
+                    recurringItems: imp.recurringItems || existing.recurringItems,
+                    monthOverrides: { ...existing.monthOverrides, ...imp.monthOverrides }
+                };
+                saveData(merged); 
+                showToast('Backup restaurado!'); renderAll(); 
+            }
             else showToast('Arquivo inválido!','error');
         } catch { showToast('Erro ao ler arquivo!','error'); }
     };
@@ -398,7 +534,7 @@ if (checkAuth()) {
             document.getElementById('loginError').textContent = '';
             initApp();
         } else {
-            document.getElementById('loginError').textContent = 'Senha incorreta. Tente novamente.';
+            document.getElementById('loginError').textContent = 'Senha incorreta.';
             document.getElementById('password').value = '';
             document.getElementById('password').focus();
         }
