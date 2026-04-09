@@ -1,6 +1,13 @@
 /* ============================================
    ORÇAMENTO FAMILIAR - SCRIPT PRINCIPAL
    ============================================ */
+// 🔐 CONFIGURAÇÃO DE SENHA
+// ⚠️ Em produção real, use backend para validar senhas!
+const APP_CONFIG = {
+    password: 'familia2026', // ← Altere para sua senha desejada
+    sessionKey: 'budgetAppLoggedIn',
+    sessionDuration: 7 * 24 * 60 * 60 * 1000 // 7 dias em milissegundos
+};
 
 // ─── ESTADO DA APLICAÇÃO ──────────────────
 const APP_STATE = {
