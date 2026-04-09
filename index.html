@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <!-- 🔐 Tela de Login -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
@@ -31,7 +30,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -41,96 +39,50 @@
                 <h1>Orçamento Familiar</h1>
             </div>
             <div class="header-actions">
-                <button id="btnExportPDF" class="btn btn-secondary" title="Exportar PDF">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
-                    PDF
-                </button>
-                <button id="btnExport" class="btn btn-secondary" title="Exportar JSON">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Backup
-                </button>
-                <button id="btnImport" class="btn btn-secondary" title="Importar Backup">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                    Restaurar
-                </button>
+                <button id="btnExportPDF" class="btn btn-secondary" title="Exportar PDF">📄 PDF</button>
+                <button id="btnExport" class="btn btn-secondary" title="Exportar JSON">💾 Backup</button>
+                <button id="btnImport" class="btn btn-secondary" title="Importar Backup">📥 Restaurar</button>
                 <input type="file" id="fileImport" accept=".json" hidden>
-                <button id="btnLogout" class="btn btn-secondary" title="Sair">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                    Sair
-                </button>
+                <button id="btnLogout" class="btn btn-secondary" title="Sair">🚪 Sair</button>
             </div>
         </div>
     </header>
 
     <main class="container">
-        <!-- Seletor de Mês -->
         <section class="month-selector">
-            <button id="btnPrevMonth" class="btn btn-icon" title="Mês anterior">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <div class="month-display">
-                <h2 id="currentMonth"></h2>
-                <span id="currentYear"></span>
-            </div>
-            <button id="btnNextMonth" class="btn btn-icon" title="Próximo mês">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
+            <button id="btnPrevMonth" class="btn btn-icon" title="Mês anterior">◀</button>
+            <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
+            <button id="btnNextMonth" class="btn btn-icon" title="Próximo mês">▶</button>
         </section>
 
-        <!-- Cards Resumo -->
         <section class="summary-cards">
-            <div class="card card-income">
-                <div class="card-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Receitas</span></div>
-                <p class="card-value" id="totalIncome">R$ 0,00</p>
-            </div>
-            <div class="card card-expense">
-                <div class="card-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Despesas</span></div>
-                <p class="card-value" id="totalExpense">R$ 0,00</p>
-            </div>
-            <div class="card card-balance" id="cardBalance">
-                <div class="card-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Saldo</span></div>
-                <p class="card-value" id="totalBalance">R$ 0,00</p>
-            </div>
+            <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p></div>
+            <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p></div>
+            <div class="card card-balance" id="cardBalance"><div class="card-header"><span>⚖️ Saldo</span></div><p class="card-value" id="totalBalance">R$ 0,00</p></div>
             <div class="card card-savings">
-                <div class="card-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span>Meta Economizada</span></div>
+                <div class="card-header"><span>🎯 Meta Economizada</span></div>
                 <p class="card-value" id="totalSavings">R$ 0,00</p>
-                <div class="savings-target">
-                    <small>Meta:</small>
-                    <input type="text" id="savingsGoal" class="savings-goal-input" value="500,00">
-                </div>
+                <div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div>
                 <div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div>
                 <span class="savings-percent" id="savingsPercent">0%</span>
             </div>
         </section>
 
-        <!-- Seção de Receitas -->
         <section class="section">
             <div class="section-header">
                 <h3>💰 Receitas</h3>
-                <button class="btn btn-primary btn-add" data-type="income">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                    Adicionar
-                </button>
+                <button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button>
             </div>
             <div class="items-list" id="incomeList"></div>
-            <div class="empty-state" id="incomeEmpty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <p>Nenhuma receita adicionada</p>
-            </div>
+            <div class="empty-state" id="incomeEmpty"><p>Nenhuma receita adicionada</p></div>
         </section>
 
-        <!-- Seção de Despesas -->
         <section class="section">
             <div class="section-header">
                 <h3>📋 Despesas</h3>
-                <button class="btn btn-primary btn-add" data-type="expense">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                    Adicionar
-                </button>
+                <button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button>
             </div>
-
             <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa por nome ou categoria...">
-
             <div class="filter-bar">
                 <button class="filter-btn active" data-filter="all">Todas</button>
                 <button class="filter-btn" data-filter="moradia">🏠 Moradia</button>
@@ -142,23 +94,15 @@
                 <button class="filter-btn" data-filter="vestuario">👕 Vestuário</button>
                 <button class="filter-btn" data-filter="outros">📦 Outros</button>
             </div>
-
             <div class="items-list" id="expenseList"></div>
-            <div class="empty-state" id="expenseEmpty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-                <p>Nenhuma despesa adicionada</p>
-            </div>
+            <div class="empty-state" id="expenseEmpty"><p>Nenhuma despesa adicionada</p></div>
         </section>
 
-        <!-- Gráfico -->
         <section class="section chart-section">
             <div class="section-header"><h3>📊 Despesas por Categoria</h3></div>
-            <div class="chart-container" id="chartContainer">
-                <canvas id="categoryChart"></canvas>
-            </div>
+            <div class="chart-container" id="chartContainer"><canvas id="categoryChart"></canvas></div>
         </section>
 
-        <!-- Histórico -->
         <section class="section">
             <div class="section-header"><h3>📅 Histórico Mensal</h3></div>
             <div class="history-table-wrapper">
@@ -167,10 +111,7 @@
                     <tbody id="historyBody"></tbody>
                 </table>
             </div>
-            <div class="empty-state" id="historyEmpty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                <p>Histórico aparecerá conforme você preencher os meses</p>
-            </div>
+            <div class="empty-state" id="historyEmpty"><p>Histórico aparecerá conforme você preencher os meses</p></div>
         </section>
     </main>
 
@@ -179,10 +120,12 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 id="modalTitle">Adicionar Item</h3>
-                <button class="btn btn-close" id="btnCloseModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                <button class="btn btn-close" id="btnCloseModal">✖</button>
             </div>
             <form id="itemForm">
-                <input type="hidden" id="itemId"><input type="hidden" id="itemType">
+                <input type="hidden" id="itemId">
+                <input type="hidden" id="itemType">
+                
                 <div class="form-group">
                     <label for="itemDescription">Descrição</label>
                     <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required>
@@ -195,31 +138,43 @@
                     <div class="form-group">
                         <label for="itemFrequency">Frequência</label>
                         <select id="itemFrequency">
-                            <option value="mensal">Mensal</option>
-                            <option value="quinzenal">Quinzenal</option>
-                            <option value="semanal">Semanal</option>
-                            <option value="anual">Anual</option>
+                            <option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option>
+                            <option value="semanal">Semanal</option><option value="anual">Anual</option>
                             <option value="unico">Único</option>
                         </select>
                     </div>
                 </div>
+                
                 <div class="form-group" id="categoryGroup" style="display:none;">
                     <label for="itemCategory">Categoria</label>
                     <select id="itemCategory">
-                        <option value="moradia">🏠 Moradia</option>
-                        <option value="alimentacao">🍔 Alimentação</option>
-                        <option value="transporte">🚗 Transporte</option>
-                        <option value="saude">💊 Saúde</option>
-                        <option value="educacao">📚 Educação</option>
-                        <option value="lazer">🎮 Lazer</option>
-                        <option value="vestuario">👕 Vestuário</option>
-                        <option value="outros">📦 Outros</option>
+                        <option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option>
+                        <option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option>
+                        <option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option>
+                        <option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label for="itemDueDate">Dia de Vencimento</label>
                     <input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia">
                 </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="itemRecurring" checked>
+                        <span>🔄 Item recorrente (se repete mensalmente)</span>
+                    </label>
+                </div>
+
+                <div class="form-group" id="scopeGroup" style="display:none; background:var(--bg-input); padding:0.75rem; border-radius:var(--radius-sm);">
+                    <label>Aplicar alteração em:</label>
+                    <div class="scope-options">
+                        <label class="scope-option"><input type="radio" name="scope" value="current"> Apenas este mês</label>
+                        <label class="scope-option"><input type="radio" name="scope" value="all" checked> Todos os meses</label>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button>
@@ -229,11 +184,7 @@
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-
-    <footer class="footer">
-        <p>Orçamento Familiar &copy; 2026 — Dados salvos localmente no navegador</p>
-    </footer>
-
+    <footer class="footer"><p>Orçamento Familiar &copy; 2026 — Dados salvos localmente</p></footer>
     <script src="script.js"></script>
 </body>
 </html>
