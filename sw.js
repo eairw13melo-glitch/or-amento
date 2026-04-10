@@ -4,7 +4,8 @@ const ASSETS = [
   '/or-amento/index.html',
   '/or-amento/style.css',
   '/or-amento/script.js',
-  '/or-amento/manifest.json'
+  '/or-amento/manifest.json',
+  '/or-amento/favicon.svg'
 ];
 
 self.addEventListener('install', e => {
