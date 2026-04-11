@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V3.0 (DURAÇÃO + CALENDÁRIO + AGENDA)
+   ORÇAMENTO FAMILIAR - V4.0 (CALC + EXCEL + AGENDA)
    ============================================ */
 const APP_CONFIG = { password: 'familia2026', sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
@@ -15,18 +15,14 @@ function loadData() {
         const raw = localStorage.getItem('budgetAppData'); 
         if (!raw) return { recurringItems: [], monthOverrides: {} }; 
         let data = JSON.parse(raw);
-        
-        // Migração v1 -> v2 (dados mensais -> recorrentes)
         if (data.recurringItems === undefined && Object.keys(data).some(k => /^\d{4}-\d{2}$/.test(k))) { 
             const newData = { recurringItems: [], monthOverrides: {} }; 
             Object.keys(data).forEach(k => { 
                 data[k].income.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'income', duration: 'infinite' })); 
                 data[k].expenses.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'expense', duration: 'infinite' })); 
             }); 
-            data = newData; saveData(data); showToast('Dados migrados para sistema recorrente! 🔄'); 
+            data = newData; saveData(data); showToast('Dados migrados! 🔄'); 
         }
-        
-        // Normalização de dados
         data.recurringItems = data.recurringItems || [];
         data.monthOverrides = data.monthOverrides || {};
         Object.keys(data.monthOverrides).forEach(k => {
@@ -35,50 +31,26 @@ function loadData() {
             data.monthOverrides[k].removed = data.monthOverrides[k].removed || [];
             data.monthOverrides[k].modified = data.monthOverrides[k].modified || {};
         });
-        
         return data;
     } catch { return { recurringItems: [], monthOverrides: {} }; }
 }
 function saveData(data) { try { localStorage.setItem('budgetAppData', JSON.stringify(data)); } catch { showToast('Erro ao salvar!', 'error'); } }
 function getMonthKey(m, y) { return `${y}-${String(m+1).padStart(2,'0')}`; }
-
-// Verifica se um item recorrente deve aparecer no mês target
 function isItemActiveForMonth(item, targetMonth, targetYear) {
-    if (!item.isRecurring || item.duration === 'single') {
-        // Itens únicos só aparecem no mês em que foram adicionados
-        const addedIn = item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-        return addedIn === getMonthKey(targetMonth, targetYear);
-    }
-    
+    if (!item.isRecurring || item.duration === 'single') return (item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)) === getMonthKey(targetMonth, targetYear);
     if (item.duration === 'infinite') return true;
-    
-    // Duração limitada (ex: 3, 6, 12, 24)
     const startMonthKey = item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
     const [sY, sM] = startMonthKey.split('-').map(Number);
     const duration = parseInt(item.duration);
-    
-    // Calcular diferença em meses
     let diff = (targetYear - sY) * 12 + (targetMonth - (sM - 1));
     return diff >= 0 && diff < duration;
 }
-
 function getMonthData(m, y) {
-    const data = loadData(); 
-    const key = getMonthKey(m, y); 
-    const overrides = data.monthOverrides[key] || { added: [], removed: [], modified: {}, notes: [] };
-    
-    // Começa com itens recorrentes ativos neste mês
+    const data = loadData(); const key = getMonthKey(m, y); const overrides = data.monthOverrides[key] || { added: [], removed: [], modified: {}, notes: [] };
     let items = data.recurringItems.filter(item => isItemActiveForMonth(item, m, y));
-    
-    // Aplica modificações específicas do mês
     items = items.map(item => overrides.modified[item.id] ? { ...item, ...overrides.modified[item.id], isRecurring: item.isRecurring } : item);
-    
-    // Remove itens excluídos neste mês
     items = items.filter(item => !overrides.removed.includes(item.id));
-    
-    // Adiciona itens avulsos criados neste mês
     items = items.concat(overrides.added);
-    
     return { income: items.filter(i => i.type === 'income'), expenses: items.filter(i => i.type === 'expense'), key, notes: overrides.notes };
 }
 
@@ -88,13 +60,9 @@ function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'cur
 function parseCurrency(str) { if (typeof str === 'number') return str; return parseFloat(str.replace(/[^\d,]/g, '').replace(',','.')) || 0; }
 function normalizeValue(item) { let v = item.amount || 0; const f = item.frequency || 'mensal'; if (f === 'semanal') v *= 4.33; else if (f === 'quinzenal') v *= 2; else if (f === 'anual') v /= 12; return v; }
 function showToast(msg, type='success') { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
-function getDurationLabel(dur) {
-    if (dur === 'infinite') return '♾️ Indefinido';
-    if (dur === 'single') return '📌 Único';
-    return `🔄 ${dur}x`;
-}
+function getDurationLabel(dur) { return dur === 'infinite' ? '♾️ Indefinido' : dur === 'single' ? '📌 Único' : `🔄 ${dur}x`; }
 
-// ─── AUTH ─────────────────────────────────
+// ─── AUTH & LOGOUT ────────────────────────
 function checkAuth() { const s = sessionStorage.getItem(APP_CONFIG.sessionKey); if (s) { const { token, ts } = JSON.parse(s); if (token === btoa(APP_CONFIG.password) && Date.now() - ts < APP_CONFIG.sessionDuration) { document.getElementById('loginScreen').classList.add('hidden'); return true; } } return false; }
 function login(pwd) { if (pwd === APP_CONFIG.password) { sessionStorage.setItem(APP_CONFIG.sessionKey, JSON.stringify({ token: btoa(pwd), ts: Date.now() })); document.getElementById('loginScreen').classList.add('hidden'); showToast('Bem-vindo! 👋'); return true; } return false; }
 async function logout() {
@@ -111,23 +79,37 @@ function updateThemeIcon(theme) { document.getElementById('btnThemeToggle').text
 function updateMetaTheme(theme) { document.getElementById('themeColorMeta').content = theme === 'dark' ? '#0f1117' : '#f5f7fa'; }
 function initPWA() { if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); } }
 
+// ─── CALCULADORA ──────────────────────────
+let calcExpression = '';
+function initCalculator() {
+    const display = document.getElementById('calcDisplay');
+    document.querySelectorAll('.calc-btn').forEach(btn => {
+        btn.onclick = () => {
+            const val = btn.dataset.val;
+            if (val === 'C') calcExpression = '';
+            else if (val === '⌫') calcExpression = calcExpression.slice(0, -1);
+            else if (val === '=') {
+                try {
+                    calcExpression = String(Function('"use strict"; return (' + calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-') + ')')());
+                    if (calcExpression === 'Infinity' || calcExpression === 'NaN') calcExpression = 'Erro';
+                } catch { calcExpression = 'Erro'; }
+            } else calcExpression += val;
+            display.textContent = calcExpression || '0';
+        };
+    });
+}
+
 // ─── MINI CALENDÁRIO ──────────────────────
 function renderCalendar() {
     const grid = document.getElementById('miniCalendar');
     grid.innerHTML = '<div class="mini-calendar-title">📅 Próximos Meses</div><div class="cal-grid"></div>';
     const calGrid = grid.querySelector('.cal-grid');
-    
     for (let i = 0; i < 12; i++) {
-        let m = APP_STATE.currentMonth + i;
-        let y = APP_STATE.currentYear + Math.floor(m / 12);
-        m = m % 12;
-        const key = getMonthKey(m, y);
-        const md = getMonthData(m, y);
+        let m = APP_STATE.currentMonth + i; let y = APP_STATE.currentYear + Math.floor(m / 12); m = m % 12;
+        const key = getMonthKey(m, y); const md = getMonthData(m, y);
         const hasData = md.income.length > 0 || md.expenses.length > 0;
         const isActive = m === APP_STATE.currentMonth && y === APP_STATE.currentYear;
-        
-        const btn = document.createElement('div');
-        btn.className = `cal-item ${isActive ? 'active' : ''} ${hasData ? 'has-data' : ''}`;
+        const btn = document.createElement('div'); btn.className = `cal-item ${isActive ? 'active' : ''} ${hasData ? 'has-data' : ''}`;
         btn.innerHTML = `<div class="cal-abbr">${MONTHS_SHORT[m]}</div><div>${y.toString().slice(2)}</div>`;
         btn.onclick = () => { APP_STATE.currentMonth = m; APP_STATE.currentYear = y; renderAll(); };
         calGrid.appendChild(btn);
@@ -141,14 +123,11 @@ function updateSummary() {
     const inc = income.reduce((s,i)=>s+normalizeValue(i),0); const exp = expenses.reduce((s,i)=>s+normalizeValue(i),0); const bal = inc-exp;
     const prevM = APP_STATE.currentMonth===0?11:APP_STATE.currentMonth-1; const prevY = APP_STATE.currentMonth===0?APP_STATE.currentYear-1:APP_STATE.currentYear;
     const prev = getMonthData(prevM, prevY); const pInc = prev.income.reduce((s,i)=>s+normalizeValue(i),0); const pExp = prev.expenses.reduce((s,i)=>s+normalizeValue(i),0);
-    
     const incDiff = pInc>0?((inc-pInc)/pInc)*100:0; const expDiff = pExp>0?((exp-pExp)/pExp)*100:0;
     document.getElementById('totalIncome').textContent = formatCurrency(inc); document.getElementById('totalExpense').textContent = formatCurrency(exp);
     renderTrend('trendIncome', incDiff, inc>=pInc); renderTrend('trendExpense', expDiff, exp<=pExp);
-    
     const balEl = document.getElementById('totalBalance'); balEl.textContent = formatCurrency(bal);
     const cardBal = document.getElementById('cardBalance'); cardBal.classList.remove('positive','negative'); if(bal>0) cardBal.classList.add('positive'); else if(bal<0) cardBal.classList.add('negative');
-    
     const goal = parseCurrency(document.getElementById('savingsGoal').value)||500; const pct = goal>0?(Math.max(0,bal)/goal)*100:0;
     document.getElementById('totalSavings').textContent = formatCurrency(Math.max(0,bal));
     document.getElementById('savingsFill').style.width = Math.min(100,pct)+'%';
@@ -158,7 +137,6 @@ function updateSummary() {
 function renderTrend(id, pct, positive) {
     const el = document.getElementById(id); const val = Math.abs(pct).toFixed(1); const sign = pct===0?'':pct>0?'↑':'↓'; const cls = pct>0?(positive?'trend-up':'trend-down'):(positive?'trend-down':'trend-up'); el.className=`trend ${cls}`; el.textContent = pct===0?'Sem dados anteriores':`${sign} ${val}% vs mês ant.`;
 }
-
 function renderCategoryGoals(expenses) {
     const grid = document.getElementById('goalsGrid'); grid.innerHTML = '';
     const goals = JSON.parse(localStorage.getItem('categoryGoals')||'{}');
@@ -171,7 +149,6 @@ function renderCategoryGoals(expenses) {
         grid.appendChild(div);
     });
 }
-
 function renderItems(type) {
     const { income, expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const listId = type==='income'?'incomeList':'expenseList'; const emptyId = type==='income'?'incomeEmpty':'expenseEmpty';
@@ -181,13 +158,8 @@ function renderItems(type) {
     listEl.innerHTML=''; if(items.length===0){emptyEl.style.display='block';return;} emptyEl.style.display='none';
     items.forEach(item=>{
         const card=document.createElement('div'); card.className='item-card'; const val=normalizeValue(item); const cls=type==='income'?'income':'expense'; const sign=type==='income'?'+':'-';
-        
-        let badgeCls = 'badge-single', badgeTxt = '📌 Único';
-        if (item.isRecurring) {
-            if (item.duration === 'infinite') { badgeCls = 'badge-recurring'; badgeTxt = '♾️ Recorrente'; }
-            else { badgeCls = 'badge-limited'; badgeTxt = getDurationLabel(item.duration); }
-        }
-        
+        let badgeCls='badge-single', badgeTxt='📌 Único';
+        if(item.isRecurring){ if(item.duration==='infinite'){badgeCls='badge-recurring';badgeTxt='♾️ Recorrente';} else{badgeCls='badge-limited';badgeTxt=getDurationLabel(item.duration);} }
         let catHTML=type==='expense'&&item.category?`<span class="item-category">${CATEGORY_LABELS[item.category]||item.category}</span>`:'';
         let freqHTML=item.frequency&&item.frequency!=='mensal'?`<span class="item-frequency">${item.frequency}</span>`:'';
         let dueHTML=item.dueDate?`<span class="item-due">Venc. dia ${item.dueDate}</span>`:'';
@@ -195,7 +167,6 @@ function renderItems(type) {
         listEl.appendChild(card);
     });
 }
-
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear); const totals={}; expenses.forEach(i=>totals[i.category||'outros']=(totals[i.category||'outros']||0)+normalizeValue(i));
     const canvas=document.getElementById('categoryChart'); const container=document.getElementById('chartContainer'); const entries=Object.entries(totals);
@@ -208,21 +179,17 @@ function renderChart() {
     c.font=`${size*0.035}px Inter`;c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();c.fillText('Total Despesas',cx,cy+12);
     const ly=size*0.88; let lx=size*0.05; entries.forEach(([cat,val])=>{const l=CATEGORY_LABELS[cat]||cat;c.fillStyle=CATEGORY_COLORS[cat]||'#636e72';c.fillRect(lx,ly,10,10);c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();c.font=`${size*0.032}px Inter`;c.textAlign='left';c.textBaseline='middle';c.fillText(l,lx+14,ly+5);lx+=c.measureText(l).width+30;});
 }
-
 function renderHistory() {
     const data=loadData(); const tbody=document.getElementById('historyBody'); const emptyEl=document.getElementById('historyEmpty'); tbody.innerHTML='';
     const keys=new Set(Object.keys(data.monthOverrides)); keys.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));
-    // Adiciona meses com dados recorrentes para os próximos 6 meses
-    for(let i=0; i<6; i++) { keys.add(getMonthKey((APP_STATE.currentMonth+i)%12, APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12))); }
-    
+    for(let i=0; i<6; i++) keys.add(getMonthKey((APP_STATE.currentMonth+i)%12, APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));
     const sorted=Array.from(keys).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();
     if(sorted.length===0){emptyEl.style.display='block';return;} emptyEl.style.display='none';
     sorted.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i),0);const exp=expenses.reduce((s,i)=>s+normalizeValue(i),0);const bal=inc-exp;const cls=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral';const tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cls}">${formatCurrency(bal)}</td>`;tbody.appendChild(tr);});
 }
-
 function checkDueAlerts() { const {expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear);const t=new Date().getDate();const u=expenses.filter(i=>i.dueDate&&i.dueDate>=t&&i.dueDate<=t+3);if(u.length>0)showToast(`⚠️ ${u.length} vencimento(s) nos próximos 3 dias!`,'error'); }
 function exportPDF() { const {income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear);const inc=income.reduce((s,i)=>s+normalizeValue(i),0);const exp=expenses.reduce((s,i)=>s+normalizeValue(i),0);const bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\nDESPESAS POR CATEGORIA:\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i));Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500); }
-function applyViewOnly() { if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true); }
+function applyViewOnly() { if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #btnExportExcel, #btnImportExcel, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true); }
 
 // ─── AGENDA / NOTAS ───────────────────────
 function renderNotes() {
@@ -231,110 +198,107 @@ function renderNotes() {
     list.innerHTML = '';
     if (notes.length === 0) { emptyEl.style.display = 'block'; return; }
     emptyEl.style.display = 'none';
-    
     notes.forEach((note, idx) => {
         const card = document.createElement('div'); card.className = 'note-card';
         const date = note.timestamp ? new Date(note.timestamp).toLocaleDateString('pt-BR') : '';
-        card.innerHTML = `
-            <div style="flex:1;"><div class="note-text">${note.text}</div><div class="note-time">${date}</div></div>
-            <button class="btn btn-note-del" onclick="deleteNote(${idx})" title="Excluir nota">✖</button>
-        `;
+        card.innerHTML = `<div style="flex:1;"><div class="note-text">${note.text}</div><div class="note-time">${date}</div></div><button class="btn btn-note-del" onclick="deleteNote(${idx})" title="Excluir nota">✖</button>`;
         list.appendChild(card);
     });
 }
-function addNote(text) {
-    if (!text.trim()) return;
-    const data = loadData();
-    const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-    if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {}, notes: [] };
-    data.monthOverrides[key].notes.push({ text: text.trim(), timestamp: Date.now() });
-    saveData(data);
-    document.getElementById('noteInput').value = '';
-    showToast('Anotação adicionada! 📝');
-    renderNotes();
-}
-function deleteNote(idx) {
-    const data = loadData();
-    const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-    if (data.monthOverrides[key]) {
-        data.monthOverrides[key].notes.splice(idx, 1);
-        saveData(data); renderNotes();
-    }
-}
+function addNote(text) { if (!text.trim()) return; const data = loadData(); const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear); if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {}, notes: [] }; data.monthOverrides[key].notes.push({ text: text.trim(), timestamp: Date.now() }); saveData(data); document.getElementById('noteInput').value = ''; showToast('Anotação adicionada! 📝'); renderNotes(); }
+function deleteNote(idx) { const data = loadData(); const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear); if (data.monthOverrides[key]) { data.monthOverrides[key].notes.splice(idx, 1); saveData(data); renderNotes(); } }
 
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions() {
     const input = document.getElementById('itemDescription'); const box = document.getElementById('smartSuggestion');
-    input.addEventListener('input', e => {
-        const v = e.target.value.toLowerCase(); const matches = Object.keys(SMART_DICT).filter(k => k.includes(v) && v.length>1);
-        if(matches.length>0){ box.innerHTML = matches.map(m=>`<div class="suggestion-item" data-val="${m}">${m}</div>`).join(''); box.classList.add('show'); }
-        else box.classList.remove('show');
-    });
+    input.addEventListener('input', e => { const v = e.target.value.toLowerCase(); const matches = Object.keys(SMART_DICT).filter(k => k.includes(v) && v.length>1); if(matches.length>0){ box.innerHTML = matches.map(m=>`<div class="suggestion-item" data-val="${m}">${m}</div>`).join(''); box.classList.add('show'); } else box.classList.remove('show'); });
     input.addEventListener('blur', ()=>setTimeout(()=>box.classList.remove('show'),150));
-    box.addEventListener('click', e => {
-        const item = e.target.closest('.suggestion-item'); if(!item)return;
-        input.value = item.dataset.val; const cat = SMART_DICT[item.dataset.val]; if(cat) document.getElementById('itemCategory').value = cat;
-        box.classList.remove('show');
-    });
+    box.addEventListener('click', e => { const item = e.target.closest('.suggestion-item'); if(!item)return; input.value = item.dataset.val; const cat = SMART_DICT[item.dataset.val]; if(cat) document.getElementById('itemCategory').value = cat; box.classList.remove('show'); });
 }
 
-// ─── CRUD COM DURAÇÃO ─────────────────────
+// ─── CRUD ─────────────────────────────────
 function openModal(type, id=null) {
     const ov=document.getElementById('modalOverlay'); const title=document.getElementById('modalTitle'); const catGrp=document.getElementById('categoryGroup'); const scopeGrp=document.getElementById('editScopeGroup');
     document.getElementById('itemType').value=type; document.getElementById('itemId').value=id||'';
     if(type==='expense'){catGrp.style.display='block';title.textContent=id?'Editar Despesa':'Adicionar Despesa';}else{catGrp.style.display='none';title.textContent=id?'Editar Receita':'Adicionar Receita';}
     scopeGrp.style.display='none'; document.getElementById('smartSuggestion').classList.remove('show');
-    
     if(id){
         const data=loadData(); let item=data.recurringItems.find(i=>i.id===id);
         if(!item){const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);const ovrs=data.monthOverrides[key]||{added:[]};item=ovrs.added.find(i=>i.id===id);if(!item&&ovrs.modified[id]){const base=data.recurringItems.find(i=>i.id===id);item=base?{...base,...ovrs.modified[id]}:null;}}
-        if(item){
-            document.getElementById('itemDescription').value=item.description;
-            document.getElementById('itemAmount').value=item.amount.toString().replace('.',',');
-            document.getElementById('itemFrequency').value=item.frequency||'mensal';
-            document.getElementById('itemDueDate').value=item.dueDate||'';
-            document.getElementById('itemDuration').value=item.duration||'single';
-            if(type==='expense')document.getElementById('itemCategory').value=item.category||'outros';
-            if(item.isRecurring) scopeGrp.style.display='block';
-        }
-    }else{
-        document.getElementById('itemForm').reset();
-        document.getElementById('itemDuration').value='single'; // Default para novo
-    }
+        if(item){document.getElementById('itemDescription').value=item.description;document.getElementById('itemAmount').value=item.amount.toString().replace('.',',');document.getElementById('itemFrequency').value=item.frequency||'mensal';document.getElementById('itemDueDate').value=item.dueDate||'';document.getElementById('itemDuration').value=item.duration||'single';if(type==='expense')document.getElementById('itemCategory').value=item.category||'outros';if(item.isRecurring) scopeGrp.style.display='block';}
+    }else{document.getElementById('itemForm').reset();document.getElementById('itemDuration').value='single';}
     ov.classList.add('active'); setTimeout(()=>document.getElementById('itemDescription').focus(),100);
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('active');}
 function saveItem(e){
     e.preventDefault(); const type=document.getElementById('itemType').value; const desc=document.getElementById('itemDescription').value.trim(); const amt=parseCurrency(document.getElementById('itemAmount').value); const freq=document.getElementById('itemFrequency').value; const due=parseInt(document.getElementById('itemDueDate').value)||null; const cat=type==='expense'?document.getElementById('itemCategory').value:null; const dur=document.getElementById('itemDuration').value; const editId=document.getElementById('itemId').value;
     if(!desc)return showToast('Informe a descrição!','error'); if(!amt||amt<=0)return showToast('Valor inválido!','error');
-    const data=loadData(); 
-    const newItem={id:editId||generateId(),description:desc,amount:amt,frequency:freq,dueDate:due,category:cat,type,duration:dur,isRecurring:dur!=='single',startMonth:editId?data.recurringItems.find(i=>i.id===editId)?.startMonth||getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear):getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear)};
-    if(editId){
-        const scope=document.querySelector('input[name="scope"]:checked')?.value||(newItem.isRecurring?'all':'current');
-        if(newItem.isRecurring&&scope==='all'){const idx=data.recurringItems.findIndex(i=>i.id===editId);if(idx!==-1)data.recurringItems[idx]=newItem;showToast('Atualizado na recorrência! 🔄');}
-        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].modified[editId]=newItem;showToast('Exceção aplicada a este mês! 📅');}
-    }else{
-        if(newItem.isRecurring){data.recurringItems.push(newItem);showToast('Item recorrente criado! 🔄');}
-        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].added.push(newItem);showToast('Item único adicionado! 📌');}
-    }
+    const data=loadData(); const newItem={id:editId||generateId(),description:desc,amount:amt,frequency:freq,dueDate:due,category:cat,type,duration:dur,isRecurring:dur!=='single',startMonth:editId?data.recurringItems.find(i=>i.id===editId)?.startMonth||getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear):getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear)};
+    if(editId){const scope=document.querySelector('input[name="scope"]:checked')?.value||(newItem.isRecurring?'all':'current');if(newItem.isRecurring&&scope==='all'){const idx=data.recurringItems.findIndex(i=>i.id===editId);if(idx!==-1)data.recurringItems[idx]=newItem;showToast('Atualizado na recorrência! 🔄');}else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].modified[editId]=newItem;showToast('Exceção aplicada a este mês! 📅');}}
+    else{if(newItem.isRecurring){data.recurringItems.push(newItem);showToast('Item recorrente criado! 🔄');}else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].added.push(newItem);showToast('Item único adicionado! 📌');}}
     saveData(data);closeModal();renderAll();
 }
-function deleteItem(type, id){
-    if(!confirm('Deseja excluir este item?'))return; const data=loadData(); const isRec=data.recurringItems.some(i=>i.id===id); let scope='current';
-    if(isRec){const c=prompt('Excluir APENAR deste mês (1) ou de TODOS os meses (2)?\nDigite 1 ou 2:');if(c==='2')scope='all';else if(c!=='1')return;}
-    if(isRec&&scope==='all'){data.recurringItems=data.recurringItems.filter(i=>i.id!==id);Object.keys(data.monthOverrides).forEach(k=>{const ov=data.monthOverrides[k];ov.removed=ov.removed.filter(r=>r!==id);delete ov.modified[id];});showToast('Excluído permanentemente! 🗑️');}
-    else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};if(isRec)data.monthOverrides[key].removed.push(id);else data.monthOverrides[key].added=data.monthOverrides[key].added.filter(i=>i.id!==id);showToast('Removido apenas deste mês! 📅');}
-    saveData(data);renderAll();
-}
+function deleteItem(type, id){if(!confirm('Deseja excluir este item?'))return; const data=loadData(); const isRec=data.recurringItems.some(i=>i.id===id); let scope='current';if(isRec){const c=prompt('Excluir APENAR deste mês (1) ou de TODOS os meses (2)?\nDigite 1 ou 2:');if(c==='2')scope='all';else if(c!=='1')return;}if(isRec&&scope==='all'){data.recurringItems=data.recurringItems.filter(i=>i.id!==id);Object.keys(data.monthOverrides).forEach(k=>{const ov=data.monthOverrides[k];ov.removed=ov.removed.filter(r=>r!==id);delete ov.modified[id];});showToast('Excluído permanentemente! 🗑️');}else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};if(isRec)data.monthOverrides[key].removed.push(id);else data.monthOverrides[key].added=data.monthOverrides[key].added.filter(i=>i.id!==id);showToast('Removido apenas deste mês! 📅');}saveData(data);renderAll();}
 function editItem(type, id){openModal(type, id);}
 
-function exportData(){const d=loadData();const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`orcamento-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);showToast('Backup exportado!');}
-function importData(file){const r=new FileReader();r.onload=e=>{try{const imp=JSON.parse(e.target.result);if(typeof imp==='object'){const ex=loadData();const mg={recurringItems:imp.recurringItems||ex.recurringItems,monthOverrides:{...ex.monthOverrides,...imp.monthOverrides}};saveData(mg);showToast('Backup restaurado!');renderAll();}else showToast('Arquivo inválido!','error');}catch{showToast('Erro ao ler arquivo!','error');}};r.readAsText(file);}
+// ─── EXCEL EXPORT/IMPORT ──────────────────
+function exportExcel() {
+    const data = loadData();
+    const rows = [];
+    const pushRow = (item, type, monthKey) => {
+        if(!item) return;
+        const [y,m] = monthKey.split('-');
+        rows.push({
+            'Mês/Ano': `${MONTHS[parseInt(m)-1]}/${y}`,
+            'Tipo': type === 'income' ? 'Receita' : 'Despesa',
+            'Descrição': item.description,
+            'Categoria': item.category ? CATEGORY_LABELS[item.category] : '-',
+            'Valor': item.amount,
+            'Frequência': item.frequency || 'mensal',
+            'Duração': item.duration || 'single',
+            'Vencimento': item.dueDate || '-',
+            'ID_Interno': item.id
+        });
+    };
+    data.recurringItems.forEach(i => pushRow(i, i.type, i.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)));
+    Object.keys(data.monthOverrides).forEach(k => {
+        const ov = data.monthOverrides[k];
+        ov.added.forEach(i => pushRow(i, i.type, k));
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orçamento");
+    XLSX.writeFile(wb, `Orcamento_Familiar_${new Date().toISOString().slice(0,10)}.xlsx`);
+    showToast('Planilha exportada com sucesso! 📊');
+}
+
+function importExcel(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'binary' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(ws);
+            const data = loadData();
+            json.forEach(row => {
+                const type = row.Tipo === 'Receita' ? 'income' : 'expense';
+                const [mes, ano] = row['Mês/Ano']?.split('/') || [MONTHS[APP_STATE.currentMonth], APP_STATE.currentYear];
+                const m = MONTHS.indexOf(mes.trim()) + 1;
+                const key = `${ano}-${String(m).padStart(2,'0')}`;
+                const item = { id: row.ID_Interno || generateId(), description: row['Descrição'] || 'Importado', amount: parseFloat(row['Valor']) || 0, frequency: row['Frequência'] || 'mensal', category: Object.keys(CATEGORY_LABELS).find(k => CATEGORY_LABELS[k] === row['Categoria']) || 'outros', dueDate: row['Vencimento'] === '-' ? null : parseInt(row['Vencimento']), duration: row['Duração'] || 'single', isRecurring: row['Duração'] !== 'single', type };
+                if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {}, notes: [] };
+                data.monthOverrides[key].added.push(item);
+            });
+            saveData(data); renderAll(); showToast('Planilha importada com sucesso! 📥');
+        } catch (err) { showToast('Erro ao ler planilha. Verifique o formato.', 'error'); console.error(err); }
+    };
+    reader.readAsBinaryString(file);
+}
 
 // ─── INIT & EVENTS ────────────────────────
 function renderAll(){updateMonthDisplay();updateSummary();renderItems('income');renderItems('expense');renderChart();renderHistory();renderCalendar();renderNotes();checkDueAlerts();}
 function initApp(){
-    if(APP_STATE.isViewOnly)applyViewOnly(); renderAll(); initTheme(); setupSmartSuggestions(); initPWA();
+    if(APP_STATE.isViewOnly)applyViewOnly(); renderAll(); initTheme(); setupSmartSuggestions(); initPWA(); initCalculator();
     document.getElementById('btnThemeToggle').onclick=toggleTheme;
     document.getElementById('btnPrevMonth').onclick=()=>{APP_STATE.currentMonth--;if(APP_STATE.currentMonth<0){APP_STATE.currentMonth=11;APP_STATE.currentYear--;}renderAll();};
     document.getElementById('btnNextMonth').onclick=()=>{APP_STATE.currentMonth++;if(APP_STATE.currentMonth>11){APP_STATE.currentMonth=0;APP_STATE.currentYear++;}renderAll();};
@@ -348,24 +312,20 @@ function initApp(){
     document.getElementById('savingsGoal').oninput=()=>updateSummary();
     document.getElementById('savingsGoal').value=localStorage.getItem('savingsGoal')||'500,00';
     document.getElementById('savingsGoal').onblur=function(){localStorage.setItem('savingsGoal',this.value);updateSummary();};
-    document.getElementById('btnExport').onclick=exportData; document.getElementById('btnExportPDF').onclick=exportPDF;
+    document.getElementById('btnExport').onclick=exportData; document.getElementById('btnExportPDF').onclick=exportPDF; document.getElementById('btnExportExcel').onclick=exportExcel;
     document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
     document.getElementById('fileImport').onchange=e=>{if(e.target.files[0])importData(e.target.files[0]);e.target.value='';};
+    document.getElementById('btnImportExcel').onclick=()=>document.getElementById('fileImportExcel').click();
+    document.getElementById('fileImportExcel').onchange=e=>{if(e.target.files[0])importExcel(e.target.files[0]);e.target.value='';};
     document.getElementById('btnLogout').onclick=logout;
     document.getElementById('btnAddNote').onclick=()=>addNote(document.getElementById('noteInput').value);
     document.getElementById('noteInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addNote(document.getElementById('noteInput').value);}};
     document.onkeydown=e=>{if(e.key==='Escape')closeModal();};
     window.onresize=()=>{clearTimeout(window._rt);window._rt=setTimeout(renderChart,200);};
-    document.addEventListener('keydown',e=>{
-        if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
-        if(e.key==='ArrowLeft')document.getElementById('btnPrevMonth').click();
-        if(e.key==='ArrowRight')document.getElementById('btnNextMonth').click();
-        if(e.key.toLowerCase()==='n')document.querySelector('.btn-add')?.click();
-        if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();document.getElementById('searchExpenses')?.focus();}
-    });
+    document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;if(e.key==='ArrowLeft')document.getElementById('btnPrevMonth').click();if(e.key==='ArrowRight')document.getElementById('btnNextMonth').click();if(e.key.toLowerCase()==='n')document.querySelector('.btn-add')?.click();if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();document.getElementById('searchExpenses')?.focus();}});
 }
 
-if(checkAuth()){initApp();}else{
-    document.getElementById('loginForm').onsubmit=e=>{e.preventDefault();if(login(document.getElementById('password').value)){document.getElementById('loginError').textContent='';initApp();}else{document.getElementById('loginError').textContent='Senha incorreta.';document.getElementById('password').value='';document.getElementById('password').focus();}};
-    document.getElementById('password').focus();
-}
+function exportData(){const d=loadData();const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`orcamento-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);showToast('Backup JSON exportado!');}
+function importData(file){const r=new FileReader();r.onload=e=>{try{const imp=JSON.parse(e.target.result);if(typeof imp==='object'){const ex=loadData();const mg={recurringItems:imp.recurringItems||ex.recurringItems,monthOverrides:{...ex.monthOverrides,...imp.monthOverrides}};saveData(mg);showToast('Backup restaurado!');renderAll();}else showToast('Arquivo inválido!','error');}catch{showToast('Erro ao ler arquivo!','error');}};r.readAsText(file);}
+
+if(checkAuth()){initApp();}else{document.getElementById('loginForm').onsubmit=e=>{e.preventDefault();if(login(document.getElementById('password').value)){document.getElementById('loginError').textContent='';initApp();}else{document.getElementById('loginError').textContent='Senha incorreta.';document.getElementById('password').value='';document.getElementById('password').focus();}};document.getElementById('password').focus();}
