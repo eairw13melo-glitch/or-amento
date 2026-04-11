@@ -11,6 +11,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- SheetJS para Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- 🔐 Login -->
@@ -37,9 +39,12 @@
             </div>
             <div class="header-actions">
                 <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema">🌓</button>
+                <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel">📊 Exportar XLS</button>
+                <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel">📥 Importar XLS</button>
+                <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
                 <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
                 <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
-                <button id="btnImport" class="btn btn-secondary">📥 Restaurar</button>
+                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
                 <input type="file" id="fileImport" accept=".json" hidden>
                 <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
             </div>
@@ -47,13 +52,39 @@
     </header>
 
     <main class="container">
-        <!-- Seletor + Mini Calendário -->
+        <!-- Calculadora + Mês + Calendário -->
         <section class="month-selector-wrapper">
+            <aside class="calculator" id="calculator">
+                <div class="calc-display" id="calcDisplay">0</div>
+                <div class="calc-grid">
+                    <button class="calc-btn op" data-val="C">C</button>
+                    <button class="calc-btn op" data-val="⌫">⌫</button>
+                    <button class="calc-btn op" data-val="%">%</button>
+                    <button class="calc-btn op" data-val="/">÷</button>
+                    <button class="calc-btn" data-val="7">7</button>
+                    <button class="calc-btn" data-val="8">8</button>
+                    <button class="calc-btn" data-val="9">9</button>
+                    <button class="calc-btn op" data-val="*">×</button>
+                    <button class="calc-btn" data-val="4">4</button>
+                    <button class="calc-btn" data-val="5">5</button>
+                    <button class="calc-btn" data-val="6">6</button>
+                    <button class="calc-btn op" data-val="-">−</button>
+                    <button class="calc-btn" data-val="1">1</button>
+                    <button class="calc-btn" data-val="2">2</button>
+                    <button class="calc-btn" data-val="3">3</button>
+                    <button class="calc-btn op" data-val="+">+</button>
+                    <button class="calc-btn" data-val="0">0</button>
+                    <button class="calc-btn" data-val=".">.</button>
+                    <button class="calc-btn equals" data-val="=">=</button>
+                </div>
+            </aside>
+
             <section class="month-selector">
                 <button id="btnPrevMonth" class="btn btn-icon">◀</button>
                 <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
                 <button id="btnNextMonth" class="btn btn-icon">▶</button>
             </section>
+
             <aside class="mini-calendar" id="miniCalendar"></aside>
         </section>
 
@@ -88,7 +119,7 @@
             <div class="chart-container" id="chartContainer"><canvas id="categoryChart"></canvas></div>
         </section>
 
-        <!-- 📅 Agenda de Notas -->
+        <!-- 📝 Agenda -->
         <section class="section">
             <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
             <div class="notes-input-area">
@@ -126,7 +157,6 @@
                     <select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select>
                 </div>
                 <div class="form-group"><label for="itemDueDate">Dia de Vencimento</label><input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia"></div>
-                
                 <div class="form-group">
                     <label for="itemDuration">⏳ Duração / Repetição</label>
                     <select id="itemDuration">
@@ -138,7 +168,6 @@
                         <option value="infinite" selected>♾️ Indefinido (para sempre)</option>
                     </select>
                 </div>
-
                 <div class="form-group" id="editScopeGroup" style="display:none; background:var(--bg-input); padding:0.75rem; border-radius:var(--radius-sm);">
                     <label>⚙️ Ao editar, aplicar em:</label>
                     <div class="scope-options">
@@ -146,11 +175,7 @@
                         <label class="scope-option"><input type="radio" name="scope" value="all" checked> Na regra de recorrência</label>
                     </div>
                 </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button>
-                </div>
+                <div class="form-actions"><button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button><button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button></div>
             </form>
         </div>
     </div>
