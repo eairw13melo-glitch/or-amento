@@ -1,29 +1,85 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V2.0 (FASE 1 + PWA)
+   ORÇAMENTO FAMILIAR - V3.0 (DURAÇÃO + CALENDÁRIO + AGENDA)
    ============================================ */
 const APP_CONFIG = { password: 'familia2026', sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const CATEGORY_LABELS = { moradia:'🏠 Moradia', alimentacao:'🍔 Alimentação', transporte:'🚗 Transporte', saude:'💊 Saúde', educacao:'📚 Educação', lazer:'🎮 Lazer', vestuario:'👕 Vestuário', outros:'📦 Outros' };
 const CATEGORY_COLORS = { moradia:'#e17055', alimentacao:'#fdcb6e', transporte:'#74b9ff', saude:'#55efc4', educacao:'#a29bfe', lazer:'#fd79a8', vestuario:'#00cec9', outros:'#636e72' };
 const SMART_DICT = { 'aluguel':'moradia','luz':'moradia','energia':'moradia','agua':'moradia','condominio':'moradia','internet':'moradia','mercado':'alimentacao','restaurante':'alimentacao','ifood':'alimentacao','uber':'transporte','99':'transporte','gasolina':'transporte','farmacia':'saude','medico':'saude','plano de saude':'saude','escola':'educacao','curso':'educacao','material':'educacao','netflix':'lazer','spotify':'lazer','cinema':'lazer','roupa':'vestuario','sapato':'vestuario','academia':'saude' };
 
 // ─── STORAGE & MIGRAÇÃO ───────────────────
 function loadData() {
-    try { const raw = localStorage.getItem('budgetAppData'); if (!raw) return { recurringItems: [], monthOverrides: {} }; let data = JSON.parse(raw);
-    if (data.recurringItems === undefined && Object.keys(data).some(k => /\d{4}-\d{2}/.test(k))) { const newData = { recurringItems: [], monthOverrides: {} }; Object.keys(data).forEach(k => { data[k].income.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'income' })); data[k].expenses.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'expense' })); }); data = newData; saveData(data); showToast('Dados migrados! 🔄'); }
-    return data.recurringItems ? data : { recurringItems: [], monthOverrides: {} };
+    try { 
+        const raw = localStorage.getItem('budgetAppData'); 
+        if (!raw) return { recurringItems: [], monthOverrides: {} }; 
+        let data = JSON.parse(raw);
+        
+        // Migração v1 -> v2 (dados mensais -> recorrentes)
+        if (data.recurringItems === undefined && Object.keys(data).some(k => /^\d{4}-\d{2}$/.test(k))) { 
+            const newData = { recurringItems: [], monthOverrides: {} }; 
+            Object.keys(data).forEach(k => { 
+                data[k].income.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'income', duration: 'infinite' })); 
+                data[k].expenses.forEach(i => newData.recurringItems.push({ ...i, isRecurring: true, type: 'expense', duration: 'infinite' })); 
+            }); 
+            data = newData; saveData(data); showToast('Dados migrados para sistema recorrente! 🔄'); 
+        }
+        
+        // Normalização de dados
+        data.recurringItems = data.recurringItems || [];
+        data.monthOverrides = data.monthOverrides || {};
+        Object.keys(data.monthOverrides).forEach(k => {
+            data.monthOverrides[k].notes = data.monthOverrides[k].notes || [];
+            data.monthOverrides[k].added = data.monthOverrides[k].added || [];
+            data.monthOverrides[k].removed = data.monthOverrides[k].removed || [];
+            data.monthOverrides[k].modified = data.monthOverrides[k].modified || {};
+        });
+        
+        return data;
     } catch { return { recurringItems: [], monthOverrides: {} }; }
 }
 function saveData(data) { try { localStorage.setItem('budgetAppData', JSON.stringify(data)); } catch { showToast('Erro ao salvar!', 'error'); } }
 function getMonthKey(m, y) { return `${y}-${String(m+1).padStart(2,'0')}`; }
+
+// Verifica se um item recorrente deve aparecer no mês target
+function isItemActiveForMonth(item, targetMonth, targetYear) {
+    if (!item.isRecurring || item.duration === 'single') {
+        // Itens únicos só aparecem no mês em que foram adicionados
+        const addedIn = item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+        return addedIn === getMonthKey(targetMonth, targetYear);
+    }
+    
+    if (item.duration === 'infinite') return true;
+    
+    // Duração limitada (ex: 3, 6, 12, 24)
+    const startMonthKey = item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const [sY, sM] = startMonthKey.split('-').map(Number);
+    const duration = parseInt(item.duration);
+    
+    // Calcular diferença em meses
+    let diff = (targetYear - sY) * 12 + (targetMonth - (sM - 1));
+    return diff >= 0 && diff < duration;
+}
+
 function getMonthData(m, y) {
-    const data = loadData(); const key = getMonthKey(m, y); const overrides = data.monthOverrides[key] || { added: [], removed: [], modified: {} };
-    let items = [...data.recurringItems];
-    items = items.map(item => overrides.modified[item.id] ? { ...item, ...overrides.modified[item.id] } : item);
+    const data = loadData(); 
+    const key = getMonthKey(m, y); 
+    const overrides = data.monthOverrides[key] || { added: [], removed: [], modified: {}, notes: [] };
+    
+    // Começa com itens recorrentes ativos neste mês
+    let items = data.recurringItems.filter(item => isItemActiveForMonth(item, m, y));
+    
+    // Aplica modificações específicas do mês
+    items = items.map(item => overrides.modified[item.id] ? { ...item, ...overrides.modified[item.id], isRecurring: item.isRecurring } : item);
+    
+    // Remove itens excluídos neste mês
     items = items.filter(item => !overrides.removed.includes(item.id));
+    
+    // Adiciona itens avulsos criados neste mês
     items = items.concat(overrides.added);
-    return { income: items.filter(i => i.type === 'income'), expenses: items.filter(i => i.type === 'expense'), key };
+    
+    return { income: items.filter(i => i.type === 'income'), expenses: items.filter(i => i.type === 'expense'), key, notes: overrides.notes };
 }
 
 // ─── UTILITÁRIOS ──────────────────────────
@@ -32,26 +88,19 @@ function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'cur
 function parseCurrency(str) { if (typeof str === 'number') return str; return parseFloat(str.replace(/[^\d,]/g, '').replace(',','.')) || 0; }
 function normalizeValue(item) { let v = item.amount || 0; const f = item.frequency || 'mensal'; if (f === 'semanal') v *= 4.33; else if (f === 'quinzenal') v *= 2; else if (f === 'anual') v /= 12; return v; }
 function showToast(msg, type='success') { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function getDurationLabel(dur) {
+    if (dur === 'infinite') return '♾️ Indefinido';
+    if (dur === 'single') return '📌 Único';
+    return `🔄 ${dur}x`;
+}
 
 // ─── AUTH ─────────────────────────────────
 function checkAuth() { const s = sessionStorage.getItem(APP_CONFIG.sessionKey); if (s) { const { token, ts } = JSON.parse(s); if (token === btoa(APP_CONFIG.password) && Date.now() - ts < APP_CONFIG.sessionDuration) { document.getElementById('loginScreen').classList.add('hidden'); return true; } } return false; }
 function login(pwd) { if (pwd === APP_CONFIG.password) { sessionStorage.setItem(APP_CONFIG.sessionKey, JSON.stringify({ token: btoa(pwd), ts: Date.now() })); document.getElementById('loginScreen').classList.add('hidden'); showToast('Bem-vindo! 👋'); return true; } return false; }
-
-// 🔐 LOGOUT: Limpa cache + sessão, MANTÉM dados financeiros
 async function logout() {
     showToast('Encerrando sessão e limpando cache... 🔒', 'success');
     sessionStorage.removeItem(APP_CONFIG.sessionKey);
-
-    if ('caches' in window) {
-        try {
-            const cacheNames = await caches.keys();
-            await Promise.all(
-                cacheNames.filter(name => name.includes('budget'))
-                          .map(name => caches.delete(name))
-            );
-        } catch (err) { console.warn('Aviso ao limpar cache:', err); }
-    }
-    
+    if ('caches' in window) { try { const keys = await caches.keys(); await Promise.all(keys.filter(k => k.includes('budget')).map(k => caches.delete(k))); } catch {} }
     setTimeout(() => location.reload(), 800);
 }
 
@@ -61,6 +110,29 @@ function toggleTheme() { const current = document.documentElement.getAttribute('
 function updateThemeIcon(theme) { document.getElementById('btnThemeToggle').textContent = theme === 'dark' ? '☀️' : '🌙'; }
 function updateMetaTheme(theme) { document.getElementById('themeColorMeta').content = theme === 'dark' ? '#0f1117' : '#f5f7fa'; }
 function initPWA() { if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); } }
+
+// ─── MINI CALENDÁRIO ──────────────────────
+function renderCalendar() {
+    const grid = document.getElementById('miniCalendar');
+    grid.innerHTML = '<div class="mini-calendar-title">📅 Próximos Meses</div><div class="cal-grid"></div>';
+    const calGrid = grid.querySelector('.cal-grid');
+    
+    for (let i = 0; i < 12; i++) {
+        let m = APP_STATE.currentMonth + i;
+        let y = APP_STATE.currentYear + Math.floor(m / 12);
+        m = m % 12;
+        const key = getMonthKey(m, y);
+        const md = getMonthData(m, y);
+        const hasData = md.income.length > 0 || md.expenses.length > 0;
+        const isActive = m === APP_STATE.currentMonth && y === APP_STATE.currentYear;
+        
+        const btn = document.createElement('div');
+        btn.className = `cal-item ${isActive ? 'active' : ''} ${hasData ? 'has-data' : ''}`;
+        btn.innerHTML = `<div class="cal-abbr">${MONTHS_SHORT[m]}</div><div>${y.toString().slice(2)}</div>`;
+        btn.onclick = () => { APP_STATE.currentMonth = m; APP_STATE.currentYear = y; renderAll(); };
+        calGrid.appendChild(btn);
+    }
+}
 
 // ─── UI RENDER ────────────────────────────
 function updateMonthDisplay() { document.getElementById('currentMonth').textContent = MONTHS[APP_STATE.currentMonth]; document.getElementById('currentYear').textContent = APP_STATE.currentYear; }
@@ -109,7 +181,13 @@ function renderItems(type) {
     listEl.innerHTML=''; if(items.length===0){emptyEl.style.display='block';return;} emptyEl.style.display='none';
     items.forEach(item=>{
         const card=document.createElement('div'); card.className='item-card'; const val=normalizeValue(item); const cls=type==='income'?'income':'expense'; const sign=type==='income'?'+':'-';
-        const badgeCls=item.isRecurring?'badge-recurring':'badge-unique'; const badgeTxt=item.isRecurring?'🔄 Recorrente':'📌 Avulso';
+        
+        let badgeCls = 'badge-single', badgeTxt = '📌 Único';
+        if (item.isRecurring) {
+            if (item.duration === 'infinite') { badgeCls = 'badge-recurring'; badgeTxt = '♾️ Recorrente'; }
+            else { badgeCls = 'badge-limited'; badgeTxt = getDurationLabel(item.duration); }
+        }
+        
         let catHTML=type==='expense'&&item.category?`<span class="item-category">${CATEGORY_LABELS[item.category]||item.category}</span>`:'';
         let freqHTML=item.frequency&&item.frequency!=='mensal'?`<span class="item-frequency">${item.frequency}</span>`:'';
         let dueHTML=item.dueDate?`<span class="item-due">Venc. dia ${item.dueDate}</span>`:'';
@@ -133,14 +211,56 @@ function renderChart() {
 
 function renderHistory() {
     const data=loadData(); const tbody=document.getElementById('historyBody'); const emptyEl=document.getElementById('historyEmpty'); tbody.innerHTML='';
-    const keys=new Set(Object.keys(data.monthOverrides)); keys.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear)); const sorted=Array.from(keys).sort().reverse();
-    if(sorted.length===0||sorted.every(k=>!/^\d{4}-\d{2}$/.test(k))){emptyEl.style.display='block';return;} emptyEl.style.display='none';
-    sorted.forEach(k=>{if(!/^\d{4}-\d{2}$/.test(k))return;const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i),0);const exp=expenses.reduce((s,i)=>s+normalizeValue(i),0);const bal=inc-exp;const cls=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral';const tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cls}">${formatCurrency(bal)}</td>`;tbody.appendChild(tr);});
+    const keys=new Set(Object.keys(data.monthOverrides)); keys.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));
+    // Adiciona meses com dados recorrentes para os próximos 6 meses
+    for(let i=0; i<6; i++) { keys.add(getMonthKey((APP_STATE.currentMonth+i)%12, APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12))); }
+    
+    const sorted=Array.from(keys).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();
+    if(sorted.length===0){emptyEl.style.display='block';return;} emptyEl.style.display='none';
+    sorted.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i),0);const exp=expenses.reduce((s,i)=>s+normalizeValue(i),0);const bal=inc-exp;const cls=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral';const tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cls}">${formatCurrency(bal)}</td>`;tbody.appendChild(tr);});
 }
 
 function checkDueAlerts() { const {expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear);const t=new Date().getDate();const u=expenses.filter(i=>i.dueDate&&i.dueDate>=t&&i.dueDate<=t+3);if(u.length>0)showToast(`⚠️ ${u.length} vencimento(s) nos próximos 3 dias!`,'error'); }
 function exportPDF() { const {income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear);const inc=income.reduce((s,i)=>s+normalizeValue(i),0);const exp=expenses.reduce((s,i)=>s+normalizeValue(i),0);const bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\nDESPESAS POR CATEGORIA:\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i));Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500); }
-function applyViewOnly() { if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #searchExpenses, #savingsGoal, .goal-item').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true); }
+function applyViewOnly() { if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true); }
+
+// ─── AGENDA / NOTAS ───────────────────────
+function renderNotes() {
+    const { notes } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const list = document.getElementById('notesList'); const emptyEl = document.getElementById('notesEmpty');
+    list.innerHTML = '';
+    if (notes.length === 0) { emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+    
+    notes.forEach((note, idx) => {
+        const card = document.createElement('div'); card.className = 'note-card';
+        const date = note.timestamp ? new Date(note.timestamp).toLocaleDateString('pt-BR') : '';
+        card.innerHTML = `
+            <div style="flex:1;"><div class="note-text">${note.text}</div><div class="note-time">${date}</div></div>
+            <button class="btn btn-note-del" onclick="deleteNote(${idx})" title="Excluir nota">✖</button>
+        `;
+        list.appendChild(card);
+    });
+}
+function addNote(text) {
+    if (!text.trim()) return;
+    const data = loadData();
+    const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+    if (!data.monthOverrides[key]) data.monthOverrides[key] = { added: [], removed: [], modified: {}, notes: [] };
+    data.monthOverrides[key].notes.push({ text: text.trim(), timestamp: Date.now() });
+    saveData(data);
+    document.getElementById('noteInput').value = '';
+    showToast('Anotação adicionada! 📝');
+    renderNotes();
+}
+function deleteNote(idx) {
+    const data = loadData();
+    const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+    if (data.monthOverrides[key]) {
+        data.monthOverrides[key].notes.splice(idx, 1);
+        saveData(data); renderNotes();
+    }
+}
 
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions() {
@@ -158,31 +278,44 @@ function setupSmartSuggestions() {
     });
 }
 
-// ─── CRUD ─────────────────────────────────
+// ─── CRUD COM DURAÇÃO ─────────────────────
 function openModal(type, id=null) {
-    const ov=document.getElementById('modalOverlay'); const title=document.getElementById('modalTitle'); const catGrp=document.getElementById('categoryGroup'); const scopeGrp=document.getElementById('scopeGroup');
+    const ov=document.getElementById('modalOverlay'); const title=document.getElementById('modalTitle'); const catGrp=document.getElementById('categoryGroup'); const scopeGrp=document.getElementById('editScopeGroup');
     document.getElementById('itemType').value=type; document.getElementById('itemId').value=id||'';
     if(type==='expense'){catGrp.style.display='block';title.textContent=id?'Editar Despesa':'Adicionar Despesa';}else{catGrp.style.display='none';title.textContent=id?'Editar Receita':'Adicionar Receita';}
     scopeGrp.style.display='none'; document.getElementById('smartSuggestion').classList.remove('show');
+    
     if(id){
         const data=loadData(); let item=data.recurringItems.find(i=>i.id===id);
         if(!item){const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);const ovrs=data.monthOverrides[key]||{added:[]};item=ovrs.added.find(i=>i.id===id);if(!item&&ovrs.modified[id]){const base=data.recurringItems.find(i=>i.id===id);item=base?{...base,...ovrs.modified[id]}:null;}}
-        if(item){document.getElementById('itemDescription').value=item.description;document.getElementById('itemAmount').value=item.amount.toString().replace('.',',');document.getElementById('itemFrequency').value=item.frequency||'mensal';document.getElementById('itemDueDate').value=item.dueDate||'';document.getElementById('itemRecurring').checked=item.isRecurring;if(type==='expense')document.getElementById('itemCategory').value=item.category||'outros';if(item.isRecurring)scopeGrp.style.display='block';}
-    }else{document.getElementById('itemForm').reset();document.getElementById('itemRecurring').checked=true;}
+        if(item){
+            document.getElementById('itemDescription').value=item.description;
+            document.getElementById('itemAmount').value=item.amount.toString().replace('.',',');
+            document.getElementById('itemFrequency').value=item.frequency||'mensal';
+            document.getElementById('itemDueDate').value=item.dueDate||'';
+            document.getElementById('itemDuration').value=item.duration||'single';
+            if(type==='expense')document.getElementById('itemCategory').value=item.category||'outros';
+            if(item.isRecurring) scopeGrp.style.display='block';
+        }
+    }else{
+        document.getElementById('itemForm').reset();
+        document.getElementById('itemDuration').value='single'; // Default para novo
+    }
     ov.classList.add('active'); setTimeout(()=>document.getElementById('itemDescription').focus(),100);
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('active');}
 function saveItem(e){
-    e.preventDefault(); const type=document.getElementById('itemType').value; const desc=document.getElementById('itemDescription').value.trim(); const amt=parseCurrency(document.getElementById('itemAmount').value); const freq=document.getElementById('itemFrequency').value; const due=parseInt(document.getElementById('itemDueDate').value)||null; const cat=type==='expense'?document.getElementById('itemCategory').value:null; const isRec=document.getElementById('itemRecurring').checked; const editId=document.getElementById('itemId').value;
+    e.preventDefault(); const type=document.getElementById('itemType').value; const desc=document.getElementById('itemDescription').value.trim(); const amt=parseCurrency(document.getElementById('itemAmount').value); const freq=document.getElementById('itemFrequency').value; const due=parseInt(document.getElementById('itemDueDate').value)||null; const cat=type==='expense'?document.getElementById('itemCategory').value:null; const dur=document.getElementById('itemDuration').value; const editId=document.getElementById('itemId').value;
     if(!desc)return showToast('Informe a descrição!','error'); if(!amt||amt<=0)return showToast('Valor inválido!','error');
-    const data=loadData(); const newItem={id:editId||generateId(),description:desc,amount:amt,frequency:freq,dueDate:due,category:cat,type,isRecurring:isRec};
+    const data=loadData(); 
+    const newItem={id:editId||generateId(),description:desc,amount:amt,frequency:freq,dueDate:due,category:cat,type,duration:dur,isRecurring:dur!=='single',startMonth:editId?data.recurringItems.find(i=>i.id===editId)?.startMonth||getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear):getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear)};
     if(editId){
-        const scope=document.querySelector('input[name="scope"]:checked')?.value||(isRec?'all':'current');
-        if(isRec&&scope==='all'){const idx=data.recurringItems.findIndex(i=>i.id===editId);if(idx!==-1)data.recurringItems[idx]=newItem;showToast('Atualizado para todos os meses! 🔄');}
-        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{}};data.monthOverrides[key].modified[editId]=newItem;showToast('Alteração apenas neste mês! 📅');}
+        const scope=document.querySelector('input[name="scope"]:checked')?.value||(newItem.isRecurring?'all':'current');
+        if(newItem.isRecurring&&scope==='all'){const idx=data.recurringItems.findIndex(i=>i.id===editId);if(idx!==-1)data.recurringItems[idx]=newItem;showToast('Atualizado na recorrência! 🔄');}
+        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].modified[editId]=newItem;showToast('Exceção aplicada a este mês! 📅');}
     }else{
-        if(isRec){data.recurringItems.push(newItem);showToast('Item recorrente criado! 🔄');}
-        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{}};data.monthOverrides[key].added.push(newItem);showToast('Item avulso adicionado! 📌');}
+        if(newItem.isRecurring){data.recurringItems.push(newItem);showToast('Item recorrente criado! 🔄');}
+        else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};data.monthOverrides[key].added.push(newItem);showToast('Item único adicionado! 📌');}
     }
     saveData(data);closeModal();renderAll();
 }
@@ -190,7 +323,7 @@ function deleteItem(type, id){
     if(!confirm('Deseja excluir este item?'))return; const data=loadData(); const isRec=data.recurringItems.some(i=>i.id===id); let scope='current';
     if(isRec){const c=prompt('Excluir APENAR deste mês (1) ou de TODOS os meses (2)?\nDigite 1 ou 2:');if(c==='2')scope='all';else if(c!=='1')return;}
     if(isRec&&scope==='all'){data.recurringItems=data.recurringItems.filter(i=>i.id!==id);Object.keys(data.monthOverrides).forEach(k=>{const ov=data.monthOverrides[k];ov.removed=ov.removed.filter(r=>r!==id);delete ov.modified[id];});showToast('Excluído permanentemente! 🗑️');}
-    else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{}};if(isRec)data.monthOverrides[key].removed.push(id);else data.monthOverrides[key].added=data.monthOverrides[key].added.filter(i=>i.id!==id);showToast('Removido apenas deste mês! 📅');}
+    else{const key=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!data.monthOverrides[key])data.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};if(isRec)data.monthOverrides[key].removed.push(id);else data.monthOverrides[key].added=data.monthOverrides[key].added.filter(i=>i.id!==id);showToast('Removido apenas deste mês! 📅');}
     saveData(data);renderAll();
 }
 function editItem(type, id){openModal(type, id);}
@@ -199,7 +332,7 @@ function exportData(){const d=loadData();const b=new Blob([JSON.stringify(d,null
 function importData(file){const r=new FileReader();r.onload=e=>{try{const imp=JSON.parse(e.target.result);if(typeof imp==='object'){const ex=loadData();const mg={recurringItems:imp.recurringItems||ex.recurringItems,monthOverrides:{...ex.monthOverrides,...imp.monthOverrides}};saveData(mg);showToast('Backup restaurado!');renderAll();}else showToast('Arquivo inválido!','error');}catch{showToast('Erro ao ler arquivo!','error');}};r.readAsText(file);}
 
 // ─── INIT & EVENTS ────────────────────────
-function renderAll(){updateMonthDisplay();updateSummary();renderItems('income');renderItems('expense');renderChart();renderHistory();checkDueAlerts();}
+function renderAll(){updateMonthDisplay();updateSummary();renderItems('income');renderItems('expense');renderChart();renderHistory();renderCalendar();renderNotes();checkDueAlerts();}
 function initApp(){
     if(APP_STATE.isViewOnly)applyViewOnly(); renderAll(); initTheme(); setupSmartSuggestions(); initPWA();
     document.getElementById('btnThemeToggle').onclick=toggleTheme;
@@ -219,6 +352,8 @@ function initApp(){
     document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
     document.getElementById('fileImport').onchange=e=>{if(e.target.files[0])importData(e.target.files[0]);e.target.value='';};
     document.getElementById('btnLogout').onclick=logout;
+    document.getElementById('btnAddNote').onclick=()=>addNote(document.getElementById('noteInput').value);
+    document.getElementById('noteInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addNote(document.getElementById('noteInput').value);}};
     document.onkeydown=e=>{if(e.key==='Escape')closeModal();};
     window.onresize=()=>{clearTimeout(window._rt);window._rt=setTimeout(renderChart,200);};
     document.addEventListener('keydown',e=>{
