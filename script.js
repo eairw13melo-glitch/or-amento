@@ -36,7 +36,24 @@ function showToast(msg, type='success') { const c = document.getElementById('toa
 // ─── AUTH ─────────────────────────────────
 function checkAuth() { const s = sessionStorage.getItem(APP_CONFIG.sessionKey); if (s) { const { token, ts } = JSON.parse(s); if (token === btoa(APP_CONFIG.password) && Date.now() - ts < APP_CONFIG.sessionDuration) { document.getElementById('loginScreen').classList.add('hidden'); return true; } } return false; }
 function login(pwd) { if (pwd === APP_CONFIG.password) { sessionStorage.setItem(APP_CONFIG.sessionKey, JSON.stringify({ token: btoa(pwd), ts: Date.now() })); document.getElementById('loginScreen').classList.add('hidden'); showToast('Bem-vindo! 👋'); return true; } return false; }
-function logout() { sessionStorage.removeItem(APP_CONFIG.sessionKey); location.reload(); }
+
+// 🔐 LOGOUT: Limpa cache + sessão, MANTÉM dados financeiros
+async function logout() {
+    showToast('Encerrando sessão e limpando cache... 🔒', 'success');
+    sessionStorage.removeItem(APP_CONFIG.sessionKey);
+
+    if ('caches' in window) {
+        try {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+                cacheNames.filter(name => name.includes('budget'))
+                          .map(name => caches.delete(name))
+            );
+        } catch (err) { console.warn('Aviso ao limpar cache:', err); }
+    }
+    
+    setTimeout(() => location.reload(), 800);
+}
 
 // ─── THEME & PWA ──────────────────────────
 function initTheme() { const saved = localStorage.getItem('appTheme'); const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches; const theme = saved || (prefersLight ? 'light' : 'dark'); document.documentElement.setAttribute('data-theme', theme); updateThemeIcon(theme); updateMetaTheme(theme); }
@@ -204,7 +221,6 @@ function initApp(){
     document.getElementById('btnLogout').onclick=logout;
     document.onkeydown=e=>{if(e.key==='Escape')closeModal();};
     window.onresize=()=>{clearTimeout(window._rt);window._rt=setTimeout(renderChart,200);};
-    // Atalhos de Teclado
     document.addEventListener('keydown',e=>{
         if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
         if(e.key==='ArrowLeft')document.getElementById('btnPrevMonth').click();
