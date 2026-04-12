@@ -43,8 +43,8 @@
                 <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel">📤 Importar XLS</button>
                 <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
                 <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
-                <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
-                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
+                <button id="btnExport" class="btn btn-secondary">💾 Backup Local</button>
+                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar Local</button>
                 <input type="file" id="fileImport" accept=".json" hidden>
                 <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
             </div>
@@ -100,7 +100,7 @@
 
         <section class="section">
             <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
-            <div class="notes-input-area"><input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200"><button class="btn btn-primary" id="btnAddNote">Adicionar</button></div>
+            <div class="notes-input-area"><input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março..." maxlength="200"><button class="btn btn-primary" id="btnAddNote">Adicionar</button></div>
             <div class="notes-list" id="notesList"></div>
             <div class="empty-state" id="notesEmpty"><p>Nenhuma anotação para este mês</p></div>
         </section>
@@ -129,7 +129,6 @@
                 </div>
                 <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select></div>
                 
-                <!-- NOVO SELETOR UNIFICADO -->
                 <div class="form-group" id="occurrenceGroup" style="display:none;">
                     <label>📅 Periodicidade da Despesa</label>
                     <div class="toggle-group">
@@ -148,7 +147,11 @@
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-    <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p></footer>
+    <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Sincronização em Nuvem Ativa ☁️</p></footer>
+    
+    <!-- Scripts do Firebase (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
