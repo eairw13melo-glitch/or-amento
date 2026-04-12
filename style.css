@@ -20,7 +20,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
 
-/* ─── HEADER ─────────────────────────────────────────────── */
 .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 1rem 0; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); }
 .header-content { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .logo { display: flex; align-items: center; gap: 0.75rem; }
@@ -28,9 +27,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .logo h1 { font-size: 1.25rem; font-weight: 700; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-/* ─── BOTÕES ─────────────────────────────────────────────── */
 .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: var(--transition); text-decoration: none; }
-.btn svg { width: 16px; height: 16px; }
 .btn-primary { background: var(--accent-primary); color: white; }
 .btn-primary:hover { background: var(--accent-primary-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4); }
 .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); }
@@ -45,10 +42,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .btn-note-del { color: var(--text-muted); width: 24px; height: 24px; } .btn-note-del:hover { background: var(--expense-bg); color: var(--expense-color); }
 .btn-current-month { font-size: 0.8rem; padding: 0.5rem; margin-top: 0.5rem; width: 100%; justify-content: center; }
 
-/* ─── LAYOUT PRINCIPAL ───────────────────────────────────── */
 .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-
-/* ─── CALCULADORA + MÊS + CALENDÁRIO ─────────────────────── */
 .month-selector-wrapper { display: flex; gap: 1.5rem; margin-bottom: 2rem; align-items: stretch; flex-wrap: wrap; }
 .calculator { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; flex: 0 0 220px; display: flex; flex-direction: column; }
 .calc-display { background: var(--bg-input); border-radius: var(--radius-sm); padding: 0.75rem; text-align: right; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; min-height: 44px; word-break: break-all; }
@@ -70,10 +64,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .cal-item { padding: 0.4rem; text-align: center; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 500; background: var(--bg-input); transition: var(--transition); position: relative; }
 .cal-item:hover { background: var(--accent-primary); color: white; }
 .cal-item.active { background: var(--accent-primary); color: white; font-weight: 700; }
-.cal-item.has-data::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--income-color); border-radius: 50%; }
+.cal-item.has-:after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--income-color); border-radius: 50%; }
 .cal-item .cal-abbr { text-transform: uppercase; }
 
-/* ─── CARDS RESUMO ───────────────────────────────────────── */
 .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
 .card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 1.25rem; border: 1px solid var(--border-color); transition: var(--transition); }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
@@ -94,7 +87,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .trend { font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 12px; }
 .trend-up { color: var(--income-color); background: var(--income-bg); } .trend-down { color: var(--expense-color); background: var(--expense-bg); } .trend-neutral { color: var(--text-muted); }
 
-/* ─── SEÇÕES, FILTROS, METAS ─────────────────────────────── */
 .section { margin-bottom: 2rem; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.25rem; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; }
 .section-header h3 { font-size: 1.1rem; font-weight: 600; }
@@ -110,7 +102,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .goal-fill { height: 100%; background: var(--accent-primary); border-radius: 2px; transition: width 0.4s ease; }
 .goal-fill.over { background: var(--expense-color); }
 
-/* ─── SELETORES VISUAIS (PERIODICIDADE & MESES) ──────────── */
 .toggle-group { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .toggle-option { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.6rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); font-size: 0.85rem; font-weight: 500; }
 .toggle-option:hover { border-color: var(--accent-primary); }
@@ -123,7 +114,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .month-check-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent-primary); cursor: pointer; }
 .month-check-item:has(input:checked) { background: rgba(108, 92, 231, 0.15); border-color: var(--accent-primary); }
 
-/* ─── UPLOAD DE IMAGEM ───────────────────────────────────── */
 .upload-area { border: 2px dashed var(--border-color); border-radius: var(--radius-sm); padding: 1rem; text-align: center; cursor: pointer; transition: var(--transition); background: var(--bg-input); }
 .upload-area:hover, .upload-area.dragover { border-color: var(--accent-primary); background: rgba(108, 92, 231, 0.1); }
 .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--text-secondary); }
@@ -141,7 +131,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .image-modal { background: var(--bg-secondary); border-radius: var(--radius-lg); padding: 1rem; max-width: 90vw; max-height: 90vh; position: relative; overflow: auto; display: flex; align-items: center; justify-content: center; }
 .image-modal img { max-width: 100%; max-height: 85vh; border-radius: var(--radius-sm); }
 
-/* ─── LISTA DE ITENS ─────────────────────────────────────── */
 .items-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .item-card { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border-color); transition: var(--transition); gap: 1rem; flex-wrap: wrap; }
 .item-card:hover { border-color: var(--accent-primary); box-shadow: var(--shadow-sm); }
@@ -159,7 +148,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .item-actions { display: flex; gap: 0.25rem; }
 .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); } .empty-state p { font-size: 0.9rem; }
 
-/* ─── GRÁFICO & TABELA ───────────────────────────────────── */
 .chart-container { max-height: 350px; display: flex; justify-content: center; align-items: center; }
 .chart-container canvas { max-width: 100%; }
 .history-table-wrapper { overflow-x: auto; }
@@ -170,7 +158,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .amount-income { color: var(--income-color); font-weight: 600; } .amount-expense { color: var(--expense-color); font-weight: 600; }
 .amount-positive { color: var(--balance-positive); font-weight: 700; } .amount-negative { color: var(--balance-negative); font-weight: 700; } .amount-neutral { color: var(--balance-neutral); font-weight: 700; }
 
-/* ─── AGENDA / NOTAS ─────────────────────────────────────── */
 .notes-input-area { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .notes-input-area input { flex: 1; padding: 0.7rem 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: inherit; }
 .notes-input-area input:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
@@ -179,7 +166,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .note-text { flex: 1; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .note-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
 
-/* ─── MODAL & FORMULÁRIOS ────────────────────────────────── */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: var(--transition); padding: 1rem; }
 .modal-overlay.active { opacity: 1; visibility: visible; }
 .modal { background: var(--bg-secondary); border-radius: var(--radius-xl); border: 1px solid var(--border-color); width: 100%; max-width: 500px; box-shadow: var(--shadow-lg); transform: translateY(20px) scale(0.95); transition: var(--transition); max-height: 90vh; overflow-y: auto; position: relative; }
@@ -198,7 +184,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .suggestion-item { padding: 0.5rem; cursor: pointer; font-size: 0.85rem; }
 .suggestion-item:hover { background: var(--bg-input); }
 
-/* ─── TOAST & LOGIN ──────────────────────────────────────── */
 .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
 .toast { padding: 0.85rem 1.25rem; border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.85rem; font-weight: 500; box-shadow: var(--shadow-md); animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; }
 .toast.success { border-color: var(--income-color); background: var(--income-bg); } .toast.error { border-color: var(--expense-color); background: var(--expense-bg); }
@@ -221,21 +206,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); margin-top: 2rem; }
 kbd { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
 
-/* ─── RESPONSIVO ─────────────────────────────────────────── */
-@media (max-width: 900px) {
-    .month-selector-wrapper { flex-direction: column; }
-    .calculator, .mini-calendar { width: 100%; flex: none; }
-    .summary-cards { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-    .summary-cards { grid-template-columns: 1fr; } .container { padding: 1rem; } .section { padding: 1rem; }
-    .item-card { flex-direction: column; align-items: flex-start; } .item-value { align-self: flex-end; } .item-actions { align-self: flex-end; }
-    .form-row { grid-template-columns: 1fr; }
-}
-
-/* ─── SCROLLBAR, SELEÇÃO & IMPRESSÃO ─────────────────────── */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+@media (max-width: 900px) { .month-selector-wrapper { flex-direction: column; } .calculator, .mini-calendar { width: 100%; flex: none; } .summary-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .summary-cards { grid-template-columns: 1fr; } .container { padding: 1rem; } .section { padding: 1rem; } .item-card { flex-direction: column; align-items: flex-start; } .item-value { align-self: flex-end; } .item-actions { align-self: flex-end; } .form-row { grid-template-columns: 1fr; } }
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-primary); } ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 ::selection { background: var(--accent-primary); color: white; }
 @media print { .header, .month-selector, .btn, .modal-overlay, .login-screen, .footer, .filter-bar, .search-input, .item-actions, .smart-suggestion, .mini-calendar, .calculator { display: none !important; } body { background: white; color: black; } .card-value, .item-value { color: black !important; } }
