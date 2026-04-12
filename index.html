@@ -11,11 +11,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- SheetJS para Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <!-- 🔐 Tela de Login -->
+    <!-- 🔐 Login -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-header">
@@ -23,11 +24,11 @@
                 <h2>Orçamento Familiar</h2>
             </div>
             <form id="loginForm">
-                <div class="form-group"><label for="password">Senha de acesso</label><input type="password" id="password" placeholder="Digite sua senha" required></div>
+                <div class="form-group"><label for="password">Senha de acesso</label><input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password"></div>
                 <p id="loginError" class="login-error"></p>
                 <button type="submit" class="btn btn-primary btn-login">Entrar</button>
             </form>
-            <p class="login-hint">Senha: <strong>familia2026</strong></p>
+            <p class="login-hint">Senha padrão: <strong>familia2026</strong></p>
         </div>
     </div>
 
@@ -40,12 +41,12 @@
             <div class="header-actions">
                 <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema">🌓</button>
                 <button id="btnExcelTemplate" class="btn btn-secondary" title="Baixar modelo Excel">📥 Modelo Excel</button>
-                <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel">📊 Exportar XLS</button>
-                <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel">📤 Importar XLS</button>
+                <button id="btnExportExcel" class="btn btn-secondary">📊 Exportar XLS</button>
+                <button id="btnImportExcel" class="btn btn-secondary">📤 Importar XLS</button>
                 <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
                 <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
-                <button id="btnExport" class="btn btn-secondary">💾 Backup Local</button>
-                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar Local</button>
+                <button id="btnExport" class="btn btn-secondary">💾 Backup JSON</button>
+                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar JSON</button>
                 <input type="file" id="fileImport" accept=".json" hidden>
                 <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
             </div>
@@ -69,18 +70,18 @@
                 <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
                 <button id="btnNextMonth" class="btn btn-icon">▶</button>
             </section>
-            <aside class="mini-calendar" id="miniCalendar"></aside>
+            <aside class="mini-calendar" id="miniCalendar">
+                <div class="mini-calendar-title">📅 Próximos Meses</div>
+                <div class="cal-grid" id="calGrid"></div>
+                <button id="btnCurrentMonth" class="btn btn-primary btn-current-month">📅 Mês Atual</button>
+            </aside>
         </section>
 
         <section class="summary-cards">
             <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p><span class="trend" id="trendIncome"></span></div>
             <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p><span class="trend" id="trendExpense"></span></div>
             <div class="card card-balance" id="cardBalance"><div class="card-header"><span>⚖️ Saldo</span></div><p class="card-value" id="totalBalance">R$ 0,00</p></div>
-            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p>
-                <div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div>
-                <div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div>
-                <span class="savings-percent" id="savingsPercent">0%</span>
-            </div>
+            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p><div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div><div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div><span class="savings-percent" id="savingsPercent">0%</span></div>
         </section>
 
         <section class="section">
@@ -149,11 +150,11 @@
                 <div class="form-group" id="receiptGroup" style="display:none;">
                     <label>📎 Comprovante/Nota Fiscal</label>
                     <div class="upload-area" id="uploadArea">
-                        <input type="file" id="receiptInput" accept="image/*,.pdf" style="display:none;">
+                        <input type="file" id="receiptInput" accept="image/*" style="display:none;">
                         <div class="upload-placeholder" id="uploadPlaceholder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                            <span>Clique ou arraste imagem aqui</span>
-                            <small>JPG, PNG ou PDF (máx. 2MB)</small>
+                            <span>Clique para upload ou arraste a imagem</span>
+                            <small>JPG ou PNG (máx. 2MB)</small>
                         </div>
                         <div class="upload-preview" id="uploadPreview" style="display:none;">
                             <img id="previewImage" src="" alt="Preview">
@@ -177,10 +178,6 @@
 
     <div class="toast-container" id="toastContainer"></div>
     <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Sincronização em Nuvem Ativa ☁️</p></footer>
-    
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
