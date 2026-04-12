@@ -42,14 +42,22 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 
 .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
 
-.month-selector-wrapper { display: flex; gap: 1.5rem; margin-bottom: 2rem; align-items: flex-start; flex-wrap: wrap; }
+.month-selector-wrapper { display: flex; gap: 1.5rem; margin-bottom: 2rem; align-items: stretch; flex-wrap: wrap; }
+.calculator { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; flex: 0 0 220px; }
+.calc-display { background: var(--bg-input); border-radius: var(--radius-sm); padding: 0.75rem; text-align: right; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; min-height: 44px; word-break: break-all; }
+.calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
+.calc-btn { padding: 0.6rem; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: var(--bg-input); color: var(--text-primary); transition: var(--transition); }
+.calc-btn:hover { background: var(--border-color); }
+.calc-btn.op { background: var(--expense-bg); color: var(--expense-color); }
+.calc-btn.equals { background: var(--accent-primary); color: white; }
+.calc-btn.equals:hover { background: var(--accent-primary-hover); }
+
 .month-selector { flex: 1; display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color); }
 .month-display { text-align: center; min-width: 200px; }
 .month-display h2 { font-size: 1.5rem; font-weight: 700; text-transform: capitalize; }
 .month-display span { font-size: 0.85rem; color: var(--text-muted); }
 
-/* Mini Calendário */
-.mini-calendar { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; min-width: 240px; }
+.mini-calendar { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; flex: 0 0 240px; }
 .mini-calendar-title { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-align: center; margin-bottom: 0.5rem; }
 .cal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
 .cal-item { padding: 0.4rem; text-align: center; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 500; background: var(--bg-input); transition: var(--transition); position: relative; }
@@ -64,11 +72,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .card-header span { font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
 .card-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
-.card-income .card-value { color: var(--income-color); }
-.card-expense .card-value { color: var(--expense-color); }
+.card-income .card-value { color: var(--income-color); } .card-expense .card-value { color: var(--expense-color); }
 .card-balance .card-value { color: var(--balance-neutral); }
-.card-balance.positive .card-value { color: var(--balance-positive); }
-.card-balance.negative .card-value { color: var(--balance-negative); }
+.card-balance.positive .card-value { color: var(--balance-positive); } .card-balance.negative .card-value { color: var(--balance-negative); }
 .card-savings .card-value { color: var(--accent-secondary); font-size: 1.25rem; }
 .savings-target { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; margin-top: 0.25rem; }
 .savings-target small { font-size: 0.7rem; color: var(--text-muted); }
@@ -116,7 +122,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 
 .chart-container { max-height: 350px; display: flex; justify-content: center; align-items: center; }
 .chart-container canvas { max-width: 100%; }
-
 .history-table-wrapper { overflow-x: auto; }
 .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .history-table th, .history-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -125,7 +130,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .amount-income { color: var(--income-color); font-weight: 600; } .amount-expense { color: var(--expense-color); font-weight: 600; }
 .amount-positive { color: var(--balance-positive); font-weight: 700; } .amount-negative { color: var(--balance-negative); font-weight: 700; } .amount-neutral { color: var(--balance-neutral); font-weight: 700; }
 
-/* Agenda de Notas */
 .notes-input-area { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .notes-input-area input { flex: 1; padding: 0.7rem 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: inherit; }
 .notes-input-area input:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
@@ -175,14 +179,16 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 
 .footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); margin-top: 2rem; }
 kbd { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
-@media (max-width: 768px) { 
-    .header-content { flex-direction: column; align-items: stretch; } .logo { justify-content: center; } .header-actions { justify-content: center; } 
+
+@media (max-width: 900px) {
     .month-selector-wrapper { flex-direction: column; }
-    .mini-calendar { width: 100%; } .cal-grid { grid-template-columns: repeat(6, 1fr); }
-    .summary-cards { grid-template-columns: repeat(2, 1fr); } .form-row { grid-template-columns: 1fr; } .card-value { font-size: 1.3rem; } 
-    .item-card { flex-direction: column; align-items: flex-start; } .item-value { align-self: flex-end; } .item-actions { align-self: flex-end; } 
+    .calculator, .mini-calendar { width: 100%; flex: none; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 480px) { .summary-cards { grid-template-columns: 1fr; } .container { padding: 1rem; } .section { padding: 1rem; } }
+@media (max-width: 480px) {
+    .summary-cards { grid-template-columns: 1fr; } .container { padding: 1rem; } .section { padding: 1rem; }
+    .item-card { flex-direction: column; align-items: flex-start; } .item-value { align-self: flex-end; } .item-actions { align-self: flex-end; }
+}
 ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-primary); } ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 ::selection { background: var(--accent-primary); color: white; }
-@media print { .header, .month-selector, .btn, .modal-overlay, .login-screen, .footer, .filter-bar, .search-input, .item-actions, .smart-suggestion, .mini-calendar { display: none !important; } body { background: white; color: black; } .card-value, .item-value { color: black !important; } }
+@media print { .header, .month-selector, .btn, .modal-overlay, .login-screen, .footer, .filter-bar, .search-input, .item-actions, .smart-suggestion, .mini-calendar, .calculator { display: none !important; } body { background: white; color: black; } .card-value, .item-value { color: black !important; } }
