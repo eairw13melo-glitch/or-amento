@@ -68,7 +68,9 @@
                 <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
                 <button id="btnNextMonth" class="btn btn-icon">▶</button>
             </section>
-            <aside class="mini-calendar" id="miniCalendar"></aside>
+            <aside class="mini-calendar" id="miniCalendar">
+                <button id="btnCurrentMonth" class="btn btn-primary btn-current-month" style="width:100%; margin-top:0.5rem;">📅 Mês Atual</button>
+            </aside>
         </section>
 
         <section class="summary-cards">
@@ -141,15 +143,38 @@
                     </div>
                 </div>
 
+                <div class="form-group" id="receiptGroup" style="display:none;">
+                    <label>📎 Comprovante/Nota Fiscal</label>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="receiptInput" accept="image/*,.pdf" style="display:none;">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                            <span>Clique para upload ou arraste a imagem</span>
+                            <small>JPG, PNG ou PDF (máx. 2MB)</small>
+                        </div>
+                        <div class="upload-preview" id="uploadPreview" style="display:none;">
+                            <img id="previewImage" src="" alt="Preview">
+                            <button type="button" class="btn btn-delete" id="btnRemoveReceipt" title="Remover imagem">✖</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions"><button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button><button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal de Visualização da Imagem -->
+    <div class="modal-overlay" id="imageModalOverlay">
+        <div class="image-modal">
+            <button class="btn btn-close" id="btnCloseImageModal" style="position:absolute; top:1rem; right:1rem; z-index:10;">✖</button>
+            <img id="fullImage" src="" alt="Comprovante">
         </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
     <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Sincronização em Nuvem Ativa ☁️</p></footer>
     
-    <!-- Scripts do Firebase (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
