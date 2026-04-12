@@ -11,10 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- SheetJS para Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <!-- 🔐 Login -->
+    <!-- 🔐 Tela de Login -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-header">
@@ -68,16 +69,18 @@
                 <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
                 <button id="btnNextMonth" class="btn btn-icon">▶</button>
             </section>
-            <aside class="mini-calendar" id="miniCalendar">
-                <button id="btnCurrentMonth" class="btn btn-primary btn-current-month" style="width:100%; margin-top:0.5rem;">📅 Mês Atual</button>
-            </aside>
+            <aside class="mini-calendar" id="miniCalendar"></aside>
         </section>
 
         <section class="summary-cards">
             <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p><span class="trend" id="trendIncome"></span></div>
             <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p><span class="trend" id="trendExpense"></span></div>
             <div class="card card-balance" id="cardBalance"><div class="card-header"><span>⚖️ Saldo</span></div><p class="card-value" id="totalBalance">R$ 0,00</p></div>
-            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p><div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div><div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div><span class="savings-percent" id="savingsPercent">0%</span></div>
+            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p>
+                <div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div>
+                <div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div>
+                <span class="savings-percent" id="savingsPercent">0%</span>
+            </div>
         </section>
 
         <section class="section">
@@ -114,7 +117,7 @@
         </section>
     </main>
 
-    <!-- Modal -->
+    <!-- Modal Item -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header"><h3 id="modalTitle">Adicionar Item</h3><button class="btn btn-close" id="btnCloseModal">✖</button></div>
@@ -149,7 +152,7 @@
                         <input type="file" id="receiptInput" accept="image/*,.pdf" style="display:none;">
                         <div class="upload-placeholder" id="uploadPlaceholder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                            <span>Clique para upload ou arraste a imagem</span>
+                            <span>Clique ou arraste imagem aqui</span>
                             <small>JPG, PNG ou PDF (máx. 2MB)</small>
                         </div>
                         <div class="upload-preview" id="uploadPreview" style="display:none;">
@@ -164,7 +167,7 @@
         </div>
     </div>
 
-    <!-- Modal de Visualização da Imagem -->
+    <!-- Modal Imagem -->
     <div class="modal-overlay" id="imageModalOverlay">
         <div class="image-modal">
             <button class="btn btn-close" id="btnCloseImageModal" style="position:absolute; top:1rem; right:1rem; z-index:10;">✖</button>
@@ -175,6 +178,7 @@
     <div class="toast-container" id="toastContainer"></div>
     <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Sincronização em Nuvem Ativa ☁️</p></footer>
     
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
