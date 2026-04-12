@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- 🔐 Login -->
@@ -26,7 +27,7 @@
                 <p id="loginError" class="login-error"></p>
                 <button type="submit" class="btn btn-primary btn-login">Entrar</button>
             </form>
-            <p class="login-hint">Senha: <strong>familia2026</strong></p>
+            <p class="login-hint">🔐 Primeiro acesso? Defina sua senha. Guarde-a com cuidado.</p>
         </div>
     </div>
 
@@ -129,7 +130,6 @@
                 </div>
                 <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select></div>
                 
-                <!-- NOVO SELETOR UNIFICADO -->
                 <div class="form-group" id="occurrenceGroup" style="display:none;">
                     <label>📅 Periodicidade da Despesa</label>
                     <div class="toggle-group">
