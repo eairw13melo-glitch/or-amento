@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V7.1 (Receitas recorrentes com mês atual pré-selecionado)
+   ORÇAMENTO FAMILIAR - V8.0 (Completo)
    ============================================ */
 const APP_CONFIG = { sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
@@ -10,6 +10,7 @@ const CATEGORY_COLORS = { moradia:'#e17055', alimentacao:'#fdcb6e', transporte:'
 const SMART_DICT = { 'aluguel':'moradia','luz':'moradia','energia':'moradia','agua':'moradia','condominio':'moradia','internet':'moradia','mercado':'alimentacao','restaurante':'alimentacao','ifood':'alimentacao','uber':'transporte','99':'transporte','gasolina':'transporte','farmacia':'saude','medico':'saude','plano de saude':'saude','escola':'educacao','curso':'educacao','material':'educacao','netflix':'lazer','spotify':'lazer','cinema':'lazer','roupa':'vestuario','sapato':'vestuario','academia':'saude' };
 
 let categoryChart = null;
+let evolutionChart = null;  // para o gráfico de evolução
 
 // ─── STORAGE & MIGRAÇÃO ───────────────────
 function loadData() {
@@ -135,7 +136,7 @@ async function logout() {
 
 // ─── THEME & PWA & CALC ───────────────────
 function initTheme() { const saved = localStorage.getItem('appTheme'); const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); document.documentElement.setAttribute('data-theme', theme); updateThemeIcon(theme); updateMetaTheme(theme); }
-function toggleTheme() { const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', next); localStorage.setItem('appTheme', next); updateThemeIcon(next); updateMetaTheme(next); if (categoryChart) categoryChart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--text-primary'); categoryChart.update(); }
+function toggleTheme() { const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', next); localStorage.setItem('appTheme', next); updateThemeIcon(next); updateMetaTheme(next); if (categoryChart) categoryChart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--text-primary'); categoryChart.update(); if (evolutionChart) evolutionChart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--text-primary'); evolutionChart.update(); }
 function updateThemeIcon(t) { document.getElementById('btnThemeToggle').textContent = t === 'dark' ? '☀️' : '🌙'; }
 function updateMetaTheme(t) { document.getElementById('themeColorMeta').content = t === 'dark' ? '#0f1117' : '#f5f7fa'; }
 function initPWA() { if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(()=>{}); }
@@ -196,7 +197,53 @@ function updateSummary() {
     renderCategoryGoals(expenses);
 }
 function renderTrend(id,pct,pos){const el=document.getElementById(id),v=Math.abs(pct).toFixed(1),s=pct===0?'':pct>0?'↑':'↓',c=pct>0?(pos?'trend-up':'trend-down'):(pos?'trend-down':'trend-up');el.className=`trend ${c}`;el.textContent=pct===0?'Sem dados anteriores':`${s} ${v}% vs mês ant.`;}
-function renderCategoryGoals(expenses){const g=document.getElementById('goalsGrid');g.innerHTML='';const goals=JSON.parse(localStorage.getItem('categoryGoals')||'{}'),totals={};expenses.forEach(i=>totals[i.category||'outros']=(totals[i.category||'outros']||0)+normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear));Object.keys(CATEGORY_LABELS).forEach(c=>{const t=totals[c]||0,gl=goals[c]||1000,p=gl>0?(t/gl)*100:0;const d=document.createElement('div');d.className='goal-item';d.innerHTML=`<div class="goal-label"><span>${CATEGORY_LABELS[c]}</span><span>${formatCurrency(t)} / ${formatCurrency(gl)}</span></div><div class="goal-bar"><div class="goal-fill ${p>100?'over':''}" style="width:${Math.min(100,p)}%"></div></div>`;d.onclick=()=>{const n=prompt(`Meta para ${CATEGORY_LABELS[c]} (R$):`,gl);if(n!==null){goals[c]=parseCurrency(n);localStorage.setItem('categoryGoals',JSON.stringify(goals));renderAll();}};g.appendChild(d);});}
+
+// RENDER CATEGORY GOALS COM ALERTAS
+function renderCategoryGoals(expenses) {
+    const g = document.getElementById('goalsGrid');
+    g.innerHTML = '';
+    const goals = JSON.parse(localStorage.getItem('categoryGoals') || '{}');
+    const totals = {};
+    expenses.forEach(i => {
+        const cat = i.category || 'outros';
+        totals[cat] = (totals[cat] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear);
+    });
+    
+    let anyOver = false;
+    Object.keys(CATEGORY_LABELS).forEach(c => {
+        const t = totals[c] || 0;
+        const gl = goals[c] || 1000;
+        const p = gl > 0 ? (t / gl) * 100 : 0;
+        const isOver = t > gl;
+        if (isOver) anyOver = true;
+        
+        const d = document.createElement('div');
+        d.className = 'goal-item';
+        d.innerHTML = `
+            <div class="goal-label">
+                <span>${CATEGORY_LABELS[c]} ${isOver ? '⚠️' : ''}</span>
+                <span>${formatCurrency(t)} / ${formatCurrency(gl)}</span>
+            </div>
+            <div class="goal-bar">
+                <div class="goal-fill ${p > 100 ? 'over' : ''}" style="width: ${Math.min(100, p)}%"></div>
+            </div>
+            ${isOver ? `<div class="goal-alert">❗ Ultrapassou a meta em ${formatCurrency(t - gl)}</div>` : ''}
+        `;
+        d.onclick = () => {
+            const n = prompt(`Meta para ${CATEGORY_LABELS[c]} (R$):`, gl);
+            if (n !== null) {
+                goals[c] = parseCurrency(n);
+                localStorage.setItem('categoryGoals', JSON.stringify(goals));
+                renderAll();
+            }
+        };
+        g.appendChild(d);
+    });
+    
+    if (anyOver) {
+        showToast('⚠️ Atenção: uma ou mais categorias ultrapassaram a meta!', 'error');
+    }
+}
 
 function renderItems(type) {
     const {income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear), listId=type==='income'?'incomeList':'expenseList', emptyId=type==='income'?'incomeEmpty':'expenseEmpty', listEl=document.getElementById(listId), emptyEl=document.getElementById(emptyId);
@@ -244,9 +291,166 @@ function renderChart() {
     });
 }
 
+// NOVO: GRÁFICO DE EVOLUÇÃO TEMPORAL
+function getLast12Months() {
+    let months = [];
+    let currentM = APP_STATE.currentMonth;
+    let currentY = APP_STATE.currentYear;
+    for (let i = 11; i >= 0; i--) {
+        let m = (currentM - i) % 12;
+        let y = currentY - Math.floor((i - currentM) / 12);
+        if (m < 0) { m += 12; y--; }
+        months.push({ month: m, year: y, key: getMonthKey(m, y) });
+    }
+    return months;
+}
+
+function renderEvolutionChart() {
+    const months = getLast12Months();
+    const labels = months.map(m => `${MONTHS_SHORT[m.month]}/${m.year.toString().slice(2)}`);
+    const incomes = [];
+    const expenses = [];
+    const balances = [];
+
+    months.forEach(m => {
+        const data = getMonthData(m.month, m.year);
+        const inc = data.income.reduce((s, i) => s + normalizeValue(i, m.month, m.year), 0);
+        const exp = data.expenses.reduce((s, i) => s + normalizeValue(i, m.month, m.year), 0);
+        incomes.push(inc);
+        expenses.push(exp);
+        balances.push(inc - exp);
+    });
+
+    const ctx = document.getElementById('evolutionChart').getContext('2d');
+    if (evolutionChart) evolutionChart.destroy();
+    
+    evolutionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Receitas',
+                    data: incomes,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Despesas',
+                    data: expenses,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Saldo',
+                    data: balances,
+                    borderColor: '#5b4cdb',
+                    backgroundColor: 'rgba(91, 76, 219, 0.05)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4,
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}` } },
+                legend: { position: 'top', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary') } }
+            },
+            scales: {
+                y: { ticks: { callback: (v) => formatCurrency(v), color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') } },
+                x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') } }
+            }
+        }
+    });
+}
+
 function renderHistory(){const d=loadData(),tb=document.getElementById('historyBody'),em=document.getElementById('historyEmpty');tb.innerHTML='';const ks=new Set(Object.keys(d.monthOverrides));ks.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));for(let i=0;i<6;i++)ks.add(getMonthKey((APP_STATE.currentMonth+i)%12,APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));const so=Array.from(ks).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();if(so.length===0){em.style.display='block';return;}em.style.display='none';so.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),bal=inc-exp,cl=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral',tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cl}">${formatCurrency(bal)}</td>`;tb.appendChild(tr);});}
 function checkDueAlerts(){const{expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),t=new Date().getDate(),u=expenses.filter(i=>i.dueDate&&i.dueDate>=t&&i.dueDate<=t+3);if(u.length>0)showToast(`⚠️ ${u.length} vencimento(s) nos próximos 3 dias!`,'error');}
-function exportPDF(){const{income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),inc=income.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear));t+='DESPESAS POR CATEGORIA:\n';Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500);}
+
+// PDF AVANÇADO (substitui o antigo)
+async function exportAdvancedPDF() {
+    showToast('Gerando PDF avançado...', 'success');
+    
+    // Criar um elemento temporário para o conteúdo do PDF
+    const pdfContent = document.createElement('div');
+    pdfContent.style.padding = '20px';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.color = 'black';
+    pdfContent.style.fontFamily = 'Inter, sans-serif';
+    
+    // Clonar os elementos que queremos incluir
+    const summaryCards = document.querySelector('.summary-cards').cloneNode(true);
+    const categoryChartCanvas = document.getElementById('categoryChart').cloneNode(true);
+    const evolutionChartCanvas = document.getElementById('evolutionChart').cloneNode(true);
+    const expenseTable = document.createElement('table');
+    expenseTable.style.width = '100%';
+    expenseTable.style.borderCollapse = 'collapse';
+    expenseTable.style.marginTop = '20px';
+    expenseTable.innerHTML = `
+        <thead><tr><th style="border-bottom:2px solid #ccc;padding:8px;text-align:left">Descrição</th><th style="border-bottom:2px solid #ccc;padding:8px;text-align:left">Categoria</th><th style="border-bottom:2px solid #ccc;padding:8px;text-align:right">Valor</th><th style="border-bottom:2px solid #ccc;padding:8px;text-align:right">Vencimento</th></tr></thead>
+        <tbody>
+            ${getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear).expenses.map(e => `
+                <tr>
+                    <td style="padding:6px;border-bottom:1px solid #ddd">${e.description}</td>
+                    <td style="padding:6px;border-bottom:1px solid #ddd">${CATEGORY_LABELS[e.category] || e.category}</td>
+                    <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">${formatCurrency(normalizeValue(e, APP_STATE.currentMonth, APP_STATE.currentYear))}</td>
+                    <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">${e.dueDate ? `Dia ${e.dueDate}` : '-'}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    `;
+    
+    pdfContent.appendChild(summaryCards);
+    pdfContent.appendChild(document.createElement('hr'));
+    pdfContent.appendChild(categoryChartCanvas);
+    pdfContent.appendChild(document.createElement('hr'));
+    pdfContent.appendChild(evolutionChartCanvas);
+    pdfContent.appendChild(document.createElement('hr'));
+    pdfContent.appendChild(expenseTable);
+    
+    document.body.appendChild(pdfContent);
+    
+    try {
+        const canvas = await html2canvas(pdfContent, { scale: 2, backgroundColor: '#ffffff' });
+        document.body.removeChild(pdfContent);
+        
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210; // A4 largura em mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= (pdf.internal.pageSize.height - 10);
+        
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdf.internal.pageSize.height;
+        }
+        
+        pdf.save(`orcamento_${MONTHS[APP_STATE.currentMonth]}_${APP_STATE.currentYear}.pdf`);
+        showToast('PDF gerado com sucesso!');
+    } catch (err) {
+        console.error(err);
+        showToast('Erro ao gerar PDF. Verifique o console.', 'error');
+        document.body.removeChild(pdfContent);
+    }
+}
+
 function applyViewOnly(){if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #btnExportExcel, #btnImportExcel, #btnExcelTemplate, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true);}
 
 // ─── AGENDA ───────────────────────────────
@@ -257,7 +461,7 @@ function deleteNote(i){const d=loadData(),k=getMonthKey(APP_STATE.currentMonth,A
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions(){const i=document.getElementById('itemDescription'),b=document.getElementById('smartSuggestion');i.addEventListener('input',e=>{const v=e.target.value.toLowerCase(),m=Object.keys(SMART_DICT).filter(k=>k.includes(v)&&v.length>1);if(m.length>0){b.innerHTML=m.map(x=>`<div class="suggestion-item" data-val="${x}">${x}</div>`).join('');b.classList.add('show');}else b.classList.remove('show');});i.addEventListener('blur',()=>setTimeout(()=>b.classList.remove('show'),150));b.addEventListener('click',e=>{const it=e.target.closest('.suggestion-item');if(!it)return;i.value=it.dataset.val;const c=SMART_DICT[it.dataset.val];if(c)document.getElementById('itemCategory').value=c;b.classList.remove('show');});}
 
-// ─── MODAL & SELETOR VISUAL (agora com mês atual incluso e pré-selecionado para receitas) ───────────────
+// ─── MODAL & SELETOR VISUAL ───────────────
 function renderMonthGrid(selected = [], includeCurrent = false) {
     const grid = document.getElementById('monthsCheckGrid'); 
     grid.innerHTML = '';
@@ -470,28 +674,77 @@ function importExcel(file){
 }
 
 // ─── INIT ─────────────────────────────────
-function renderAll(){updateMonthDisplay();updateSummary();renderItems('income');renderItems('expense');renderChart();renderHistory();renderCalendar();renderNotes();checkDueAlerts();}
-function initApp(){if(APP_STATE.isViewOnly)applyViewOnly();renderAll();initTheme();setupSmartSuggestions();initPWA();initCalculator();
-    document.getElementById('btnThemeToggle').onclick=toggleTheme;
-    document.getElementById('btnPrevMonth').onclick=()=>{APP_STATE.currentMonth--;if(APP_STATE.currentMonth<0){APP_STATE.currentMonth=11;APP_STATE.currentYear--;}renderAll();};
-    document.getElementById('btnNextMonth').onclick=()=>{APP_STATE.currentMonth++;if(APP_STATE.currentMonth>11){APP_STATE.currentMonth=0;APP_STATE.currentYear++;}renderAll();};
-    document.querySelectorAll('.btn-add').forEach(b=>b.onclick=()=>{document.getElementById('itemId').value='';openModal(b.dataset.type);});
-    document.getElementById('btnCloseModal').onclick=closeModal;document.getElementById('btnCancelModal').onclick=closeModal;
-    document.getElementById('modalOverlay').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
-    document.getElementById('itemForm').onsubmit=saveItem;
-    document.getElementById('itemAmount').oninput=e=>{let v=e.target.value.replace(/[^\d]/g,'');if(v)e.target.value=(parseInt(v)/100).toFixed(2).replace('.',',');};
-    document.querySelectorAll('.filter-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');APP_STATE.currentFilter=b.dataset.filter;renderItems('expense');});
-    document.getElementById('searchExpenses').oninput=()=>renderItems('expense');
-    document.getElementById('savingsGoal').oninput=()=>updateSummary();document.getElementById('savingsGoal').value=localStorage.getItem('savingsGoal')||'500,00';document.getElementById('savingsGoal').onblur=e=>{localStorage.setItem('savingsGoal',e.target.value);updateSummary();};
-    document.getElementById('btnExport').onclick=()=>{const d=loadData();const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`orcamento-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);showToast('Backup JSON exportado!');};
-    document.getElementById('btnExportPDF').onclick=exportPDF; document.getElementById('btnExportExcel').onclick=exportExcel; document.getElementById('btnExcelTemplate').onclick=downloadExcelTemplate;
-    document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();document.getElementById('fileImport').onchange=e=>{if(e.target.files[0]){const r=new FileReader();r.onload=ev=>{try{const d=loadData(),imp=JSON.parse(ev.target.result);saveData({recurringItems:imp.recurringItems||d.recurringItems,monthOverrides:{...d.monthOverrides,...imp.monthOverrides}});renderAll();showToast('Restaurado!');}catch{showToast('Erro!','error');}};r.readAsText(e.target.files[0]);}e.target.value='';};
-    document.getElementById('btnImportExcel').onclick=()=>document.getElementById('fileImportExcel').click();document.getElementById('fileImportExcel').onchange=e=>{if(e.target.files[0])importExcel(e.target.files[0]);e.target.value='';};
-    document.getElementById('btnLogout').onclick=logout;
-    document.getElementById('btnAddNote').onclick=()=>addNote(document.getElementById('noteInput').value);
-    document.getElementById('noteInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addNote(document.getElementById('noteInput').value);}};
-    document.onkeydown=e=>{if(e.key==='Escape')closeModal();};
-    window.onresize=()=>{if(categoryChart) categoryChart.resize();};
-    document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if(e.key==='ArrowLeft')document.getElementById('btnPrevMonth').click();if(e.key==='ArrowRight')document.getElementById('btnNextMonth').click();if(e.key.toLowerCase()==='n')document.querySelector('.btn-add')?.click();if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){e.preventDefault();document.getElementById('searchExpenses')?.focus();}});
+function renderAll(){
+    updateMonthDisplay();
+    updateSummary();
+    renderItems('income');
+    renderItems('expense');
+    renderChart();
+    renderEvolutionChart();   // NOVO gráfico de evolução
+    renderHistory();
+    renderCalendar();
+    renderNotes();
+    checkDueAlerts();
 }
-if(checkAuth()){initApp();}else{document.getElementById('loginForm').onsubmit=async e=>{e.preventDefault();if(await login(document.getElementById('password').value)){document.getElementById('loginError').textContent='';initApp();}else{document.getElementById('loginError').textContent='Senha incorreta.';document.getElementById('password').value='';document.getElementById('password').focus();}};document.getElementById('password').focus();}
+
+function initApp(){
+    if(APP_STATE.isViewOnly) applyViewOnly();
+    renderAll();
+    initTheme();
+    setupSmartSuggestions();
+    initPWA();
+    initCalculator();
+    
+    // Botão de instalação PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtn = document.createElement('button');
+        installBtn.textContent = '📲 Instalar App';
+        installBtn.className = 'btn btn-primary';
+        installBtn.style.position = 'fixed';
+        installBtn.style.bottom = '20px';
+        installBtn.style.right = '20px';
+        installBtn.style.zIndex = '1000';
+        installBtn.onclick = () => {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => installBtn.remove());
+        };
+        document.body.appendChild(installBtn);
+    });
+    
+    document.getElementById('btnThemeToggle').onclick = toggleTheme;
+    document.getElementById('btnPrevMonth').onclick = () => { APP_STATE.currentMonth--; if(APP_STATE.currentMonth<0){ APP_STATE.currentMonth=11; APP_STATE.currentYear--; } renderAll(); };
+    document.getElementById('btnNextMonth').onclick = () => { APP_STATE.currentMonth++; if(APP_STATE.currentMonth>11){ APP_STATE.currentMonth=0; APP_STATE.currentYear++; } renderAll(); };
+    document.querySelectorAll('.btn-add').forEach(b => b.onclick = () => { document.getElementById('itemId').value=''; openModal(b.dataset.type); });
+    document.getElementById('btnCloseModal').onclick = closeModal;
+    document.getElementById('btnCancelModal').onclick = closeModal;
+    document.getElementById('modalOverlay').onclick = e => { if(e.target===e.currentTarget) closeModal(); };
+    document.getElementById('itemForm').onsubmit = saveItem;
+    document.getElementById('itemAmount').oninput = e => { let v=e.target.value.replace(/[^\d]/g,''); if(v) e.target.value=(parseInt(v)/100).toFixed(2).replace('.',','); };
+    document.querySelectorAll('.filter-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); APP_STATE.currentFilter=b.dataset.filter; renderItems('expense'); });
+    document.getElementById('searchExpenses').oninput = () => renderItems('expense');
+    document.getElementById('savingsGoal').oninput = () => updateSummary();
+    document.getElementById('savingsGoal').value = localStorage.getItem('savingsGoal') || '500,00';
+    document.getElementById('savingsGoal').onblur = e => { localStorage.setItem('savingsGoal', e.target.value); updateSummary(); };
+    document.getElementById('btnExport').onclick = () => { const d=loadData(); const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`orcamento-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); showToast('Backup JSON exportado!'); };
+    document.getElementById('btnExportPDF').onclick = exportAdvancedPDF; // novo PDF
+    document.getElementById('btnExportExcel').onclick = exportExcel;
+    document.getElementById('btnExcelTemplate').onclick = downloadExcelTemplate;
+    document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
+    document.getElementById('fileImport').onchange = e => { if(e.target.files[0]){ const r=new FileReader(); r.onload=ev=>{ try{ const d=loadData(), imp=JSON.parse(ev.target.result); saveData({recurringItems:imp.recurringItems||d.recurringItems, monthOverrides:{...d.monthOverrides,...imp.monthOverrides}}); renderAll(); showToast('Restaurado!'); } catch{ showToast('Erro!','error'); } }; r.readAsText(e.target.files[0]); } e.target.value=''; };
+    document.getElementById('btnImportExcel').onclick = () => document.getElementById('fileImportExcel').click();
+    document.getElementById('fileImportExcel').onchange = e => { if(e.target.files[0]) importExcel(e.target.files[0]); e.target.value=''; };
+    document.getElementById('btnLogout').onclick = logout;
+    document.getElementById('btnAddNote').onclick = () => addNote(document.getElementById('noteInput').value);
+    document.getElementById('noteInput').onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); addNote(document.getElementById('noteInput').value); } };
+    document.onkeydown = e => { if(e.key==='Escape') closeModal(); };
+    window.onresize = () => { if(categoryChart) categoryChart.resize(); if(evolutionChart) evolutionChart.resize(); };
+    document.addEventListener('keydown', e => { if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return; if(e.key==='ArrowLeft') document.getElementById('btnPrevMonth').click(); if(e.key==='ArrowRight') document.getElementById('btnNextMonth').click(); if(e.key.toLowerCase()==='n') document.querySelector('.btn-add')?.click(); if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='f'){ e.preventDefault(); document.getElementById('searchExpenses')?.focus(); } });
+}
+
+if(checkAuth()){ initApp(); } else {
+    document.getElementById('loginForm').onsubmit = async e => { e.preventDefault(); if(await login(document.getElementById('password').value)){ document.getElementById('loginError').textContent=''; initApp(); } else { document.getElementById('loginError').textContent='Senha incorreta.'; document.getElementById('password').value=''; document.getElementById('password').focus(); } };
+    document.getElementById('password').focus();
+}
