@@ -11,7 +11,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Bibliotecas -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -49,170 +48,104 @@
                 <h1>Orçamento Familiar</h1>
             </div>
             <div class="header-actions">
-                <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema" aria-label="Alternar tema claro/escuro">🌓</button>
-                <button id="btnExcelTemplate" class="btn btn-secondary" title="Baixar modelo Excel" aria-label="Baixar modelo Excel">📥 Modelo Excel</button>
-                <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel" aria-label="Exportar para Excel">📊 Exportar XLS</button>
-                <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel" aria-label="Importar planilha Excel">📤 Importar XLS</button>
-                <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden aria-label="Arquivo Excel para importação">
-                <button id="btnExportPDF" class="btn btn-secondary" aria-label="Exportar relatório em PDF">📄 PDF</button>
-                <button id="btnExport" class="btn btn-secondary" aria-label="Fazer backup dos dados">💾 Backup</button>
-                <button id="btnImport" class="btn btn-secondary" aria-label="Restaurar backup">🔄 Restaurar</button>
-                <input type="file" id="fileImport" accept=".json" hidden aria-label="Arquivo JSON de backup">
-                   <!-- NOVO BOTÃO DE RESET SEGURO -->
-                <button id="btnReset" class="btn btn-danger" aria-label="Resetar todos os dados" style="background-color:#dc2626; color:white;">⚠️ Resetar Tudo</button>
-                <button id="btnLogout" class="btn btn-secondary" aria-label="Sair da conta">🚪 Sair</button>
-            </div>
-        </div>
-    </header>
-
-                
+                <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema">🌓</button>
+                <button id="btnExcelTemplate" class="btn btn-secondary">📥 Modelo Excel</button>
+                <button id="btnExportExcel" class="btn btn-secondary">📊 Exportar XLS</button>
+                <button id="btnImportExcel" class="btn btn-secondary">📤 Importar XLS</button>
+                <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
+                <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
+                <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
+                <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
+                <input type="file" id="fileImport" accept=".json" hidden>
+                <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
+                <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
             </div>
         </div>
     </header>
 
     <main class="container">
         <section class="month-selector-wrapper">
-            <aside class="calculator" id="calculator" aria-label="Calculadora rápida">
+            <aside class="calculator" id="calculator">
                 <div class="calc-display" id="calcDisplay">0</div>
                 <div class="calc-grid">
-                    <button class="calc-btn op" data-val="C" aria-label="Limpar">C</button>
-                    <button class="calc-btn op" data-val="⌫" aria-label="Apagar último dígito">⌫</button>
-                    <button class="calc-btn op" data-val="%" aria-label="Porcentagem">%</button>
-                    <button class="calc-btn op" data-val="/" aria-label="Divisão">÷</button>
-                    <button class="calc-btn" data-val="7">7</button>
-                    <button class="calc-btn" data-val="8">8</button>
-                    <button class="calc-btn" data-val="9">9</button>
-                    <button class="calc-btn op" data-val="*" aria-label="Multiplicação">×</button>
-                    <button class="calc-btn" data-val="4">4</button>
-                    <button class="calc-btn" data-val="5">5</button>
-                    <button class="calc-btn" data-val="6">6</button>
-                    <button class="calc-btn op" data-val="-" aria-label="Subtração">−</button>
-                    <button class="calc-btn" data-val="1">1</button>
-                    <button class="calc-btn" data-val="2">2</button>
-                    <button class="calc-btn" data-val="3">3</button>
-                    <button class="calc-btn op" data-val="+" aria-label="Adição">+</button>
-                    <button class="calc-btn" data-val="0">0</button>
-                    <button class="calc-btn" data-val="." aria-label="Ponto decimal">.</button>
-                    <button class="calc-btn equals" data-val="=" aria-label="Calcular resultado">=</button>
+                    <button class="calc-btn op" data-val="C">C</button><button class="calc-btn op" data-val="⌫">⌫</button><button class="calc-btn op" data-val="%">%</button><button class="calc-btn op" data-val="/">÷</button>
+                    <button class="calc-btn" data-val="7">7</button><button class="calc-btn" data-val="8">8</button><button class="calc-btn" data-val="9">9</button><button class="calc-btn op" data-val="*">×</button>
+                    <button class="calc-btn" data-val="4">4</button><button class="calc-btn" data-val="5">5</button><button class="calc-btn" data-val="6">6</button><button class="calc-btn op" data-val="-">−</button>
+                    <button class="calc-btn" data-val="1">1</button><button class="calc-btn" data-val="2">2</button><button class="calc-btn" data-val="3">3</button><button class="calc-btn op" data-val="+">+</button>
+                    <button class="calc-btn" data-val="0">0</button><button class="calc-btn" data-val=".">.</button><button class="calc-btn equals" data-val="=">=</button>
                 </div>
             </aside>
             <section class="month-selector">
-                <button id="btnPrevMonth" class="btn btn-icon" aria-label="Mês anterior">◀</button>
-                <div class="month-display"><h2 id="currentMonth" aria-live="polite"></h2><span id="currentYear"></span></div>
-                <button id="btnNextMonth" class="btn btn-icon" aria-label="Próximo mês">▶</button>
+                <button id="btnPrevMonth" class="btn btn-icon">◀</button>
+                <div class="month-display"><h2 id="currentMonth"></h2><span id="currentYear"></span></div>
+                <button id="btnNextMonth" class="btn btn-icon">▶</button>
             </section>
-            <aside class="mini-calendar" id="miniCalendar" aria-label="Calendário de navegação rápida"></aside>
+            <aside class="mini-calendar" id="miniCalendar"></aside>
         </section>
 
         <section class="summary-cards">
-            <div class="card card-income">
-                <div class="card-header"><span>💰 Receitas</span></div>
-                <p class="card-value" id="totalIncome" aria-live="polite">R$ 0,00</p>
-                <span class="trend" id="trendIncome"></span>
-            </div>
-            <div class="card card-expense">
-                <div class="card-header"><span>💸 Despesas</span></div>
-                <p class="card-value" id="totalExpense" aria-live="polite">R$ 0,00</p>
-                <span class="trend" id="trendExpense"></span>
-            </div>
-            <div class="card card-balance" id="cardBalance">
-                <div class="card-header"><span>⚖️ Saldo</span></div>
-                <p class="card-value" id="totalBalance" aria-live="polite">R$ 0,00</p>
-            </div>
-            <div class="card card-savings">
-                <div class="card-header"><span>🎯 Meta Economizada</span></div>
-                <p class="card-value" id="totalSavings" aria-live="polite">R$ 0,00</p>
-                <div class="savings-target">
-                    <small>Meta:</small>
-                    <input type="text" id="savingsGoal" class="savings-goal-input" value="500,00" aria-label="Valor da meta de economia">
-                </div>
-                <div class="savings-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="savingsBar">
-                    <div class="savings-fill" id="savingsFill"></div>
-                </div>
-                <span class="savings-percent" id="savingsPercent">0%</span>
-            </div>
+            <div class="card card-income"><div class="card-header"><span>💰 Receitas</span></div><p class="card-value" id="totalIncome">R$ 0,00</p><span class="trend" id="trendIncome"></span></div>
+            <div class="card card-expense"><div class="card-header"><span>💸 Despesas</span></div><p class="card-value" id="totalExpense">R$ 0,00</p><span class="trend" id="trendExpense"></span></div>
+            <div class="card card-balance" id="cardBalance"><div class="card-header"><span>⚖️ Saldo</span></div><p class="card-value" id="totalBalance">R$ 0,00</p></div>
+            <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p><div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div><div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div><span class="savings-percent" id="savingsPercent">0%</span></div>
         </section>
 
         <section class="section">
-            <div class="section-header"><h3>💰 Receitas</h3><button class="btn btn-primary btn-add" data-type="income" aria-label="Adicionar nova receita">➕ Adicionar</button></div>
+            <div class="section-header"><h3>💰 Receitas</h3><button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button></div>
             <div class="items-list" id="incomeList"></div>
             <div class="empty-state" id="incomeEmpty"><p>Nenhuma receita adicionada</p></div>
         </section>
 
         <section class="section">
-            <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense" aria-label="Adicionar nova despesa">➕ Adicionar</button></div>
+            <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button></div>
             <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa...">
             <div class="filter-bar" id="filterBar"></div>
             <div class="goals-grid" id="goalsGrid"></div>
             <div class="items-list" id="expenseList"></div>
             <div class="empty-state" id="expenseEmpty"><p>Nenhuma despesa adicionada</p></div>
-            
-            <!-- Rodapé com seleção múltipla -->
             <div class="expense-footer">
                 <div class="selection-controls">
                     <button id="btnSelectAll" class="btn btn-secondary btn-sm">✅ Selecionar todas</button>
                     <button id="btnClearSelection" class="btn btn-secondary btn-sm">❌ Limpar seleção</button>
                 </div>
-                <div class="selected-total">
-                    💰 <strong>Total selecionado:</strong> <span id="selectedTotal">R$ 0,00</span>
-                </div>
+                <div class="selected-total">💰 <strong>Total selecionado:</strong> <span id="selectedTotal">R$ 0,00</span></div>
             </div>
         </section>
 
         <section class="section chart-section">
             <div class="section-header"><h3>📊 Despesas por Categoria</h3></div>
-            <div class="chart-container" id="chartContainer"><canvas id="categoryChart" role="img" aria-label="Gráfico de distribuição de despesas por categoria"></canvas></div>
+            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
         </section>
        
         <section class="section">
             <div class="section-header"><h3>📈 Evolução Mensal (últimos 12 meses)</h3></div>
-            <div class="chart-container"><canvas id="evolutionChart" height="300" role="img" aria-label="Gráfico de evolução de receitas, despesas e saldo nos últimos 12 meses"></canvas></div>
+            <div class="chart-container"><canvas id="evolutionChart" height="300"></canvas></div>
+        </section>
+
+        <!-- NOVA SEÇÃO: COMPARAÇÃO DE CATEGORIAS -->
+        <section class="section">
+            <div class="section-header"><h3>📊 Comparativo de Categorias (Mês Atual vs Mês Anterior)</h3></div>
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table" id="comparisonTable">
+                    <thead>
+                        <tr><th>Categoria</th><th>Mês Atual</th><th>Mês Anterior</th><th>Diferença (R$)</th><th>Diferença (%)</th><th>Tendência</th></tr>
+                    </thead>
+                    <tbody id="comparisonBody"></tbody>
+                </table>
+            </div>
+            <div class="empty-state" id="comparisonEmpty"><p>Adicione despesas nos dois meses para ver a comparação.</p></div>
         </section>
         
         <section class="section">
             <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
-            <div class="notes-input-area">
-                <input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200">
-                <button class="btn btn-primary" id="btnAddNote">Adicionar</button>
-            </div>
+            <div class="notes-input-area"><input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200"><button class="btn btn-primary" id="btnAddNote">Adicionar</button></div>
             <div class="notes-list" id="notesList"></div>
             <div class="empty-state" id="notesEmpty"><p>Nenhuma anotação para este mês</p></div>
         </section>
 
-        
-<section class="section">
-    <div class="section-header">
-        <h3>📊 Comparativo de Categorias (Mês Atual vs Mês Anterior)</h3>
-    </div>
-    <div class="comparison-table-wrapper">
-        <table class="comparison-table" id="comparisonTable">
-            <thead>
-                <tr>
-                    <th>Categoria</th>
-                    <th>Mês Atual</th>
-                    <th>Mês Anterior</th>
-                    <th>Diferença (R$)</th>
-                    <th>Diferença (%)</th>
-                    <th>Tendência</th>
-                </tr>
-            </thead>
-            <tbody id="comparisonBody"></tbody>
-        </table>
-    </div>
-    <div class="empty-state" id="comparisonEmpty">
-        <p>Adicione despesas nos dois meses para ver a comparação.</p>
-    </div>
-</section>
-
-        
         <section class="section">
             <div class="section-header"><h3>📅 Histórico Mensal</h3></div>
-            <div class="history-table-wrapper">
-                <table class="history-table" id="historyTable">
-                    <thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
-                    <tbody id="historyBody"></tbody>
-                </table>
-            </div>
+            <div class="history-table-wrapper"><table class="history-table" id="historyTable"><thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody id="historyBody"></tbody></table></div>
             <div class="empty-state" id="historyEmpty"><p>Histórico aparecerá conforme você preencher os meses</p></div>
         </section>
     </main>
@@ -220,67 +153,16 @@
     <!-- Modal principal -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Adicionar Item</h3>
-                <button class="btn btn-close" id="btnCloseModal">✖</button>
-            </div>
+            <div class="modal-header"><h3 id="modalTitle">Adicionar Item</h3><button class="btn btn-close" id="btnCloseModal">✖</button></div>
             <form id="itemForm">
-                <input type="hidden" id="itemId">
-                <input type="hidden" id="itemType">
-                <div class="form-group" style="position:relative;">
-                    <label for="itemDescription">Descrição</label>
-                    <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required autocomplete="off">
-                    <div class="smart-suggestion" id="smartSuggestion"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div>
-                    <div class="form-group"><label for="itemDueDate">Data de Vencimento</label><input type="date" id="itemDueDate"></div>
-                </div>
-                <div class="form-group" id="frequencyGroup" style="display:none;">
-                    <label>🕒 Frequência da Receita</label>
-                    <div class="toggle-group">
-                        <label class="toggle-option"><input type="radio" name="frequency" value="monthly" checked> 📅 Mensal</label>
-                        <label class="toggle-option"><input type="radio" name="frequency" value="weekly"> 📆 Semanal</label>
-                        <label class="toggle-option"><input type="radio" name="frequency" value="daily"> ⏱️ Diária</label>
-                    </div>
-                    <small>O valor informado será multiplicado conforme a frequência para obter o total do mês.</small>
-                </div>
-                <div class="form-group" id="categoryGroup" style="display:none;">
-                    <label for="itemCategory">Categoria</label>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <select id="itemCategory" style="flex:1;">
-                            <option value="moradia">🏠 Moradia</option>
-                            <option value="alimentacao">🍔 Alimentação</option>
-                            <option value="transporte">🚗 Transporte</option>
-                            <option value="saude">💊 Saúde</option>
-                            <option value="educacao">📚 Educação</option>
-                            <option value="lazer">🎮 Lazer</option>
-                            <option value="vestuario">👕 Vestuário</option>
-                            <option value="outros">📦 Outros</option>
-                        </select>
-                        <button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;" title="Gerenciar categorias">⚙️</button>
-                    </div>
-                </div>
-                <div class="form-group" id="occurrenceGroup">
-                    <label>📅 Periodicidade</label>
-                    <div class="toggle-group">
-                        <label class="toggle-option"><input type="radio" name="occurrenceType" value="single" checked> 📌 Único (este mês)</label>
-                        <label class="toggle-option"><input type="radio" name="occurrenceType" value="recurring"> 🔄 Recorrente</label>
-                    </div>
-                    <div id="monthSelectionGrid" style="display:none; margin-top:0.75rem; padding:0.75rem; background:var(--bg-input); border-radius:var(--radius-sm);">
-                        <small>Marque os meses em que o item deve aparecer:</small>
-                        <div class="months-check-grid" id="monthsCheckGrid"></div>
-                    </div>
-                </div>
-                <div class="form-group" id="installmentGroup" style="display:none;">
-                    <label for="installments">Número de parcelas (opcional)</label>
-                    <input type="number" id="installments" min="2" max="60" placeholder="Ex: 12">
-                    <small>Deixe em branco se for contínuo.</small>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button>
-                </div>
+                <input type="hidden" id="itemId"><input type="hidden" id="itemType">
+                <div class="form-group" style="position:relative;"><label for="itemDescription">Descrição</label><input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required autocomplete="off"><div class="smart-suggestion" id="smartSuggestion"></div></div>
+                <div class="form-row"><div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div><div class="form-group"><label for="itemDueDate">Data de Vencimento</label><input type="date" id="itemDueDate"></div></div>
+                <div class="form-group" id="frequencyGroup" style="display:none;"><label>🕒 Frequência da Receita</label><div class="toggle-group"><label class="toggle-option"><input type="radio" name="frequency" value="monthly" checked> 📅 Mensal</label><label class="toggle-option"><input type="radio" name="frequency" value="weekly"> 📆 Semanal</label><label class="toggle-option"><input type="radio" name="frequency" value="daily"> ⏱️ Diária</label></div><small>O valor informado será multiplicado conforme a frequência para obter o total do mês.</small></div>
+                <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><div style="display: flex; gap: 0.5rem; align-items: center;"><select id="itemCategory" style="flex:1;"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select><button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;">⚙️</button></div></div>
+                <div class="form-group" id="occurrenceGroup"><label>📅 Periodicidade</label><div class="toggle-group"><label class="toggle-option"><input type="radio" name="occurrenceType" value="single" checked> 📌 Único (este mês)</label><label class="toggle-option"><input type="radio" name="occurrenceType" value="recurring"> 🔄 Recorrente</label></div><div id="monthSelectionGrid" style="display:none; margin-top:0.75rem; padding:0.75rem; background:var(--bg-input); border-radius:var(--radius-sm);"><small>Marque os meses em que o item deve aparecer:</small><div class="months-check-grid" id="monthsCheckGrid"></div></div></div>
+                <div class="form-group" id="installmentGroup" style="display:none;"><label for="installments">Número de parcelas (opcional)</label><input type="number" id="installments" min="2" max="60" placeholder="Ex: 12"><small>Deixe em branco se for contínuo.</small></div>
+                <div class="form-actions"><button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button><button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button></div>
             </form>
         </div>
     </div>
@@ -288,24 +170,13 @@
     <!-- Modal de gerenciar categorias -->
     <div class="modal-overlay" id="modalCategoriesOverlay">
         <div class="modal" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Gerenciar Categorias</h3>
-                <button class="btn btn-close" id="btnCloseCatModal">✖</button>
-            </div>
-            <div class="modal-body" style="padding: 1.5rem;">
-                <div id="categoriesList"></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;">
-                    <button id="btnAddCategory" class="btn btn-primary">Adicionar</button>
-                </div>
-            </div>
+            <div class="modal-header"><h3>Gerenciar Categorias</h3><button class="btn btn-close" id="btnCloseCatModal">✖</button></div>
+            <div class="modal-body" style="padding: 1.5rem;"><div id="categoriesList"></div><div style="display: flex; gap: 0.5rem; margin-top: 1rem;"><input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;"><button id="btnAddCategory" class="btn btn-primary">Adicionar</button></div></div>
         </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-    <footer class="footer">
-        <p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p>
-    </footer>
+    <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p></footer>
     <script src="script.js"></script>
 </body>
 </html>
