@@ -226,6 +226,13 @@
                         <option value="outros">📦 Outros</option>
                     </select>
                 </div>
+___________________________________________
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+    <select id="itemCategory" style="flex:1;">...</select>
+    <button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;">⚙️</button>
+</div>
+___________________________________________
+                
 
                 <!-- Grupo de ocorrência (despesas e receitas) -->
                 <div class="form-group" id="occurrenceGroup">
@@ -260,5 +267,19 @@
         <p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p>
     </footer>
     <script src="script.js"></script>
+    ______________________________________
+    <div class="modal-overlay" id="modalCategoriesOverlay">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header"><h3>Gerenciar Categorias</h3><button class="btn btn-close" id="btnCloseCatModal">✖</button></div>
+        <div class="modal-body" style="padding: 1.5rem;">
+            <div id="categoriesList"></div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;">
+                <button id="btnAddCategory" class="btn btn-primary">Adicionar</button>
+            </div>
+        </div>
+    </div>
+    </div>
+    _______________________________________
 </body>
 </html>
