@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.4 (Máscara de valor corrigida)
+   ORÇAMENTO FAMILIAR - V9.5 (com reset seguro)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -194,7 +194,6 @@ function formatCurrency(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); 
 }
 
-// Converte string para número (aceita "4.200,50" ou "4200,50" ou "4200.50")
 function parseCurrency(str) { 
     if (typeof str === 'number') return str;
     if (!str) return 0;
@@ -209,25 +208,20 @@ function parseCurrency(str) {
     return isNaN(val) ? 0 : val;
 }
 
-// NOVA MÁSCARA DE VALOR: sem formatação durante a digitação, apenas no blur/focus
 function setupAmountMask() {
     const amountInput = document.getElementById('itemAmount');
     if (!amountInput) return;
     
-    // Remove formatação e deixa apenas dígitos e vírgula (até duas casas)
     function cleanAndFormat(value) {
         let v = value.replace(/[^\d,]/g, '');
-        // Garante apenas uma vírgula
         let parts = v.split(',');
         if (parts.length > 2) v = parts[0] + ',' + parts.slice(1).join('');
-        // Limita a duas casas decimais
         if (parts.length === 2 && parts[1].length > 2) {
             v = parts[0] + ',' + parts[1].substring(0, 2);
         }
         return v;
     }
     
-    // Formata com separador de milhar e duas casas decimais (para exibição)
     function formatToDisplay(value) {
         if (!value) return '0,00';
         let num = parseCurrency(value);
@@ -235,7 +229,6 @@ function setupAmountMask() {
         return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     
-    // Quando ganha foco, remove a formatação (mostra apenas dígitos e vírgula)
     amountInput.addEventListener('focus', function() {
         let raw = this.value;
         let num = parseCurrency(raw);
@@ -244,21 +237,18 @@ function setupAmountMask() {
         }
     });
     
-    // Durante a digitação, apenas limpa e permite formatação básica
     amountInput.addEventListener('input', function(e) {
         let raw = this.value;
         let cleaned = cleanAndFormat(raw);
         if (cleaned !== raw) {
             let cursorPos = this.selectionStart;
             this.value = cleaned;
-            // Ajusta o cursor se necessário (evita saltos)
             if (cursorPos && cleaned.length > cursorPos) {
                 this.setSelectionRange(cursorPos, cursorPos);
             }
         }
     });
     
-    // Ao perder o foco, aplica a formatação completa
     amountInput.addEventListener('blur', function() {
         let raw = this.value;
         let formatted = formatToDisplay(raw);
@@ -343,6 +333,30 @@ async function logout() {
         } catch {} 
     } 
     setTimeout(() => location.reload(), 800); 
+}
+
+// --- RESET SEGURO (nova função) ---
+async function resetAllData() {
+    const password = prompt('⚠️ ATENÇÃO! Isso irá APAGAR TODOS OS DADOS (receitas, despesas, metas, categorias, senha de acesso).\nDigite a senha de reset para confirmar:');
+    if (password !== 'rw13melo') {
+        showToast('Senha de reset incorreta. Operação cancelada.', 'error');
+        return;
+    }
+    
+    if (confirm('Última chance! Todos os dados serão permanentemente excluídos. Deseja continuar?')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+        showToast('Dados resetados com sucesso! A página será recarregada.', 'success');
+        setTimeout(() => {
+            location.reload();
+        }, 1500);
+    } else {
+        showToast('Reset cancelado.', 'info');
+    }
 }
 
 // --- Theme & PWA & Calc ---
@@ -1031,7 +1045,6 @@ function openModal(type, id=null) {
         }
         if(item) {
             document.getElementById('itemDescription').value = item.description;
-            // Exibe o valor sem formatação de milhar (para edição fácil)
             document.getElementById('itemAmount').value = item.amount.toFixed(2).replace('.', ',');
             if (item.dueDate) {
                 const dueDate = new Date(item.dueDate);
@@ -1365,7 +1378,6 @@ function initApp() {
     document.getElementById('itemForm').onsubmit = saveItem;
     document.getElementById('searchExpenses').oninput = () => { renderItems('expense'); updateSelectedTotal(); };
     
-    // Campo de meta de economia também com máscara simples
     const savingsGoalInput = document.getElementById('savingsGoal');
     if (savingsGoalInput) {
         savingsGoalInput.addEventListener('blur', function() {
@@ -1437,6 +1449,9 @@ function initApp() {
     // Botões de seleção
     document.getElementById('btnSelectAll').onclick = selectAllExpenses;
     document.getElementById('btnClearSelection').onclick = clearSelection;
+    
+    // Botão de reset seguro
+    document.getElementById('btnReset').onclick = resetAllData;
     
     // Gerenciar categorias
     document.getElementById('btnManageCategories')?.addEventListener('click', openCategoriesModal);
