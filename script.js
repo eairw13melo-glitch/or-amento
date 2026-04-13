@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.3 (Correção do valor)
+   ORÇAMENTO FAMILIAR - V9.4 (Máscara de valor corrigida)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -194,7 +194,7 @@ function formatCurrency(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); 
 }
 
-// CORREÇÃO: parseCurrency agora interpreta corretamente valores como 4200 -> 4200,00
+// Converte string para número (aceita "4.200,50" ou "4200,50" ou "4200.50")
 function parseCurrency(str) { 
     if (typeof str === 'number') return str;
     if (!str) return 0;
@@ -209,42 +209,60 @@ function parseCurrency(str) {
     return isNaN(val) ? 0 : val;
 }
 
-// CORREÇÃO: Máscara de valor com suporte a valores grandes
+// NOVA MÁSCARA DE VALOR: sem formatação durante a digitação, apenas no blur/focus
 function setupAmountMask() {
     const amountInput = document.getElementById('itemAmount');
     if (!amountInput) return;
     
-    function formatToCurrency(value) {
-        if (value === '' || value === null || isNaN(value)) return '';
-        let number = typeof value === 'number' ? value : parseFloat(value);
-        if (isNaN(number)) return '';
-        return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Remove formatação e deixa apenas dígitos e vírgula (até duas casas)
+    function cleanAndFormat(value) {
+        let v = value.replace(/[^\d,]/g, '');
+        // Garante apenas uma vírgula
+        let parts = v.split(',');
+        if (parts.length > 2) v = parts[0] + ',' + parts.slice(1).join('');
+        // Limita a duas casas decimais
+        if (parts.length === 2 && parts[1].length > 2) {
+            v = parts[0] + ',' + parts[1].substring(0, 2);
+        }
+        return v;
     }
     
-    amountInput.addEventListener('input', function(e) {
+    // Formata com separador de milhar e duas casas decimais (para exibição)
+    function formatToDisplay(value) {
+        if (!value) return '0,00';
+        let num = parseCurrency(value);
+        if (isNaN(num)) return '0,00';
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    // Quando ganha foco, remove a formatação (mostra apenas dígitos e vírgula)
+    amountInput.addEventListener('focus', function() {
         let raw = this.value;
-        let digits = raw.replace(/[^\d,]/g, '');
-        digits = digits.replace(',', '.');
-        let number = parseFloat(digits);
-        if (isNaN(number)) {
-            this.value = '';
-            return;
+        let num = parseCurrency(raw);
+        if (!isNaN(num)) {
+            this.value = num.toFixed(2).replace('.', ',');
         }
-        this.value = number.toFixed(2).replace('.', ',');
     });
     
+    // Durante a digitação, apenas limpa e permite formatação básica
+    amountInput.addEventListener('input', function(e) {
+        let raw = this.value;
+        let cleaned = cleanAndFormat(raw);
+        if (cleaned !== raw) {
+            let cursorPos = this.selectionStart;
+            this.value = cleaned;
+            // Ajusta o cursor se necessário (evita saltos)
+            if (cursorPos && cleaned.length > cursorPos) {
+                this.setSelectionRange(cursorPos, cursorPos);
+            }
+        }
+    });
+    
+    // Ao perder o foco, aplica a formatação completa
     amountInput.addEventListener('blur', function() {
-        let value = this.value;
-        if (!value) {
-            this.value = '0,00';
-            return;
-        }
-        let number = parseCurrency(value);
-        if (isNaN(number)) {
-            this.value = '0,00';
-        } else {
-            this.value = formatToCurrency(number);
-        }
+        let raw = this.value;
+        let formatted = formatToDisplay(raw);
+        this.value = formatted;
     });
 }
 
@@ -1013,8 +1031,8 @@ function openModal(type, id=null) {
         }
         if(item) {
             document.getElementById('itemDescription').value = item.description;
-            // CORREÇÃO: exibir valor já formatado com separador de milhar
-            document.getElementById('itemAmount').value = item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            // Exibe o valor sem formatação de milhar (para edição fácil)
+            document.getElementById('itemAmount').value = item.amount.toFixed(2).replace('.', ',');
             if (item.dueDate) {
                 const dueDate = new Date(item.dueDate);
                 if (!isNaN(dueDate)) {
@@ -1346,7 +1364,27 @@ function initApp() {
     document.getElementById('modalOverlay').onclick = e => { if(e.target === e.currentTarget) closeModal(); };
     document.getElementById('itemForm').onsubmit = saveItem;
     document.getElementById('searchExpenses').oninput = () => { renderItems('expense'); updateSelectedTotal(); };
-    document.getElementById('savingsGoal').oninput = () => updateSummary();
+    
+    // Campo de meta de economia também com máscara simples
+    const savingsGoalInput = document.getElementById('savingsGoal');
+    if (savingsGoalInput) {
+        savingsGoalInput.addEventListener('blur', function() {
+            let val = parseCurrency(this.value);
+            if (!isNaN(val)) {
+                this.value = val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else {
+                this.value = '500,00';
+            }
+            updateSummary();
+        });
+        savingsGoalInput.addEventListener('focus', function() {
+            let num = parseCurrency(this.value);
+            if (!isNaN(num)) {
+                this.value = num.toFixed(2).replace('.', ',');
+            }
+        });
+    }
+    
     document.getElementById('savingsGoal').value = localStorage.getItem('savingsGoal') || '500,00';
     document.getElementById('savingsGoal').onblur = e => { 
         localStorage.setItem('savingsGoal', e.target.value); 
