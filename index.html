@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Bibliotecas para PDF e Excel -->
+    <!-- Bibliotecas -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -173,7 +173,7 @@
         </section>
     </main>
 
-    <!-- Modal -->
+    <!-- Modal principal (adicionar/editar itens) -->
     <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal">
             <div class="modal-header">
@@ -215,26 +215,20 @@
                 <!-- Grupo de categoria (apenas despesas) -->
                 <div class="form-group" id="categoryGroup" style="display:none;">
                     <label for="itemCategory">Categoria</label>
-                    <select id="itemCategory">
-                        <option value="moradia">🏠 Moradia</option>
-                        <option value="alimentacao">🍔 Alimentação</option>
-                        <option value="transporte">🚗 Transporte</option>
-                        <option value="saude">💊 Saúde</option>
-                        <option value="educacao">📚 Educação</option>
-                        <option value="lazer">🎮 Lazer</option>
-                        <option value="vestuario">👕 Vestuário</option>
-                        <option value="outros">📦 Outros</option>
-                    </select>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="itemCategory" style="flex:1;">
+                            <option value="moradia">🏠 Moradia</option>
+                            <option value="alimentacao">🍔 Alimentação</option>
+                            <option value="transporte">🚗 Transporte</option>
+                            <option value="saude">💊 Saúde</option>
+                            <option value="educacao">📚 Educação</option>
+                            <option value="lazer">🎮 Lazer</option>
+                            <option value="vestuario">👕 Vestuário</option>
+                            <option value="outros">📦 Outros</option>
+                        </select>
+                        <button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;" title="Gerenciar categorias">⚙️</button>
+                    </div>
                 </div>
-
-                    
-                        ___________________________________________
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <select id="itemCategory" style="flex:1;">...</select>
-                                <button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;">⚙️</button>
-                            </div>
-                        ___________________________________________
-                
 
                 <!-- Grupo de ocorrência (despesas e receitas) -->
                 <div class="form-group" id="occurrenceGroup">
@@ -264,24 +258,27 @@
         </div>
     </div>
 
+    <!-- Modal para gerenciar categorias personalizadas -->
+    <div class="modal-overlay" id="modalCategoriesOverlay" role="dialog" aria-modal="true">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Gerenciar Categorias</h3>
+                <button class="btn btn-close" id="btnCloseCatModal" aria-label="Fechar">✖</button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div id="categoriesList"></div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;" aria-label="Nome da nova categoria">
+                    <button id="btnAddCategory" class="btn btn-primary">Adicionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
     <footer class="footer">
         <p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p>
     </footer>
     <script src="script.js"></script>
-    ______________________________________
-    <div class="modal-overlay" id="modalCategoriesOverlay">
-    <div class="modal" style="max-width: 400px;">
-        <div class="modal-header"><h3>Gerenciar Categorias</h3><button class="btn btn-close" id="btnCloseCatModal">✖</button></div>
-        <div class="modal-body" style="padding: 1.5rem;">
-            <div id="categoriesList"></div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;">
-                <button id="btnAddCategory" class="btn btn-primary">Adicionar</button>
-            </div>
-        </div>
-    </div>
-    </div>
-    _______________________________________
 </body>
 </html>
