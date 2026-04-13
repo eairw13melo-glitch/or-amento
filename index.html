@@ -103,7 +103,17 @@
             <div class="section-header"><h3>📊 Despesas por Categoria</h3></div>
             <div class="chart-container" id="chartContainer"><canvas id="categoryChart"></canvas></div>
         </section>
-
+       
+        <!-- Após a section .chart-section -->
+        <section class="section">
+            <div class="section-header">
+                <h3>📈 Evolução Mensal (últimos 12 meses)</h3>
+            </div>
+            <div class="chart-container">
+            <canvas id="evolutionChart" height="300"></canvas>
+            </div>
+        </section>
+        
         <section class="section">
             <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
             <div class="notes-input-area"><input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200"><button class="btn btn-primary" id="btnAddNote">Adicionar</button></div>
