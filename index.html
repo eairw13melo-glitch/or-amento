@@ -128,6 +128,16 @@
                 <div class="form-row">
                     <div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div>
                     <div class="form-group"><label for="itemDueDate">Dia de Vencimento</label><input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia"></div>
+                    <!-- Dentro do <form id="itemForm">, após o .form-row do valor/dia -->
+<div class="form-group" id="frequencyGroup" style="display:none;">
+    <label>🕒 Frequência da Receita</label>
+    <div class="toggle-group">
+        <label class="toggle-option"><input type="radio" name="frequency" value="monthly" checked> 📅 Mensal</label>
+        <label class="toggle-option"><input type="radio" name="frequency" value="weekly"> 📆 Semanal</label>
+        <label class="toggle-option"><input type="radio" name="frequency" value="daily"> ⏱️ Diária</label>
+    </div>
+    <small class="help-text">O valor informado será multiplicado conforme a frequência para obter o total do mês.</small>
+</div>
                 </div>
                 <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select></div>
                 
