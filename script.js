@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V6.0 (CHART.JS + HASH + RECORRÊNCIA EDITÁVEL)
+   ORÇAMENTO FAMILIAR - V6.1 (Meses a partir do próximo)
    ============================================ */
 const APP_CONFIG = { sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
@@ -170,12 +170,7 @@ function renderItems(type) {
         if(APP_STATE.currentFilter!=='all')items=items.filter(i=>i.category===APP_STATE.currentFilter);
         const s=document.getElementById('searchExpenses')?.value.toLowerCase()||'';
         if(s)items=items.filter(i=>i.description.toLowerCase().includes(s)||(i.category||'').includes(s));
-        // Ordenação por vencimento (melhoria)
-        items.sort((a,b) => {
-            const da = a.dueDate || 99;
-            const db = b.dueDate || 99;
-            return da - db;
-        });
+        items.sort((a,b) => { const da = a.dueDate || 99; const db = b.dueDate || 99; return da - db; });
     }
     listEl.innerHTML='';if(items.length===0){emptyEl.style.display='block';return;}emptyEl.style.display='none';
     items.forEach(item=>{
@@ -220,16 +215,20 @@ function deleteNote(i){const d=loadData(),k=getMonthKey(APP_STATE.currentMonth,A
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions(){const i=document.getElementById('itemDescription'),b=document.getElementById('smartSuggestion');i.addEventListener('input',e=>{const v=e.target.value.toLowerCase(),m=Object.keys(SMART_DICT).filter(k=>k.includes(v)&&v.length>1);if(m.length>0){b.innerHTML=m.map(x=>`<div class="suggestion-item" data-val="${x}">${x}</div>`).join('');b.classList.add('show');}else b.classList.remove('show');});i.addEventListener('blur',()=>setTimeout(()=>b.classList.remove('show'),150));b.addEventListener('click',e=>{const it=e.target.closest('.suggestion-item');if(!it)return;i.value=it.dataset.val;const c=SMART_DICT[it.dataset.val];if(c)document.getElementById('itemCategory').value=c;b.classList.remove('show');});}
 
-// ─── MODAL & SELETOR VISUAL (com edição de meses) ───────────────
+// ─── MODAL & SELETOR VISUAL (MESES A PARTIR DO PRÓXIMO) ───────────────
 function renderMonthGrid(selected = []) {
-    const grid = document.getElementById('monthsCheckGrid'); grid.innerHTML = '';
-    for (let i = 0; i < 12; i++) {
-        const m = (APP_STATE.currentMonth + i) % 12;
-        const y = APP_STATE.currentYear + Math.floor((APP_STATE.currentMonth + i) / 12);
+    const grid = document.getElementById('monthsCheckGrid'); 
+    grid.innerHTML = '';
+    // Começa do próximo mês (i=1) até 12 meses à frente
+    for (let i = 1; i <= 12; i++) {
+        let m = (APP_STATE.currentMonth + i) % 12;
+        let y = APP_STATE.currentYear + Math.floor((APP_STATE.currentMonth + i) / 12);
         const key = getMonthKey(m, y);
         const checked = selected.includes(key);
-        const label = document.createElement('label'); label.className = 'month-check-item';
-        label.innerHTML = `<input type="checkbox" value="${key}" ${checked ? 'checked' : ''}><span>${MONTHS[m].substring(0,3)}/${y.toString().slice(2)}</span>`;
+        const label = document.createElement('label');
+        label.className = 'month-check-item';
+        label.innerHTML = `<input type="checkbox" value="${key}" ${checked ? 'checked' : ''}>
+                           <span>${MONTHS[m].substring(0,3)}/${y.toString().slice(2)}</span>`;
         grid.appendChild(label);
     }
 }
@@ -278,6 +277,10 @@ function saveItem(e){
     let activeMonths = [];
     if(type==='expense' && document.querySelector('input[name="occurrenceType"]:checked').value === 'recurring'){
         document.querySelectorAll('#monthsCheckGrid input:checked').forEach(cb => activeMonths.push(cb.value));
+        if (activeMonths.length === 0) {
+            showToast('Selecione pelo menos um mês para a despesa recorrente!', 'error');
+            return;
+        }
     }
     if(activeMonths.length === 0 && type==='expense') activeMonths = [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)];
     
@@ -296,7 +299,6 @@ function saveItem(e){
                 if(d.monthOverrides[key]?.modified) delete d.monthOverrides[key].modified[editId];
             }
         } else {
-            // Único: se era recorrente, remove e adiciona como exceção
             if(isRecurringBase) {
                 d.recurringItems.splice(existingIdx, 1);
                 const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
