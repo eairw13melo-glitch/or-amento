@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V7.0 (Receitas recorrentes + frequência)
+   ORÇAMENTO FAMILIAR - V7.1 (Receitas recorrentes com mês atual pré-selecionado)
    ============================================ */
 const APP_CONFIG = { sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
@@ -245,7 +245,7 @@ function renderChart() {
     });
 }
 
-function renderHistory(){const d=loadData(),tb=document.getElementById('historyBody'),em=document.getElementById('historyEmpty');tb.innerHTML='';const ks=new Set(Object.keys(d.monthOverrides));ks.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));for(let i=0;i<6;i++)ks.add(getMonthKey((APP_STATE.currentMonth+i)%12,APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));const so=Array.from(ks).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();if(so.length===0){em.style.display='block';return;}em.style.display='none';so.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),bal=inc-exp,cl=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral',tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cl}">${formatCurrency(bal)}</td>`;tb.appendChild(tr);});}
+function renderHistory(){const d=loadData(),tb=document.getElementById('historyBody'),em=document.getElementById('historyEmpty');tb.innerHTML='';const ks=new Set(Object.keys(d.monthOverrides));ks.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));for(let i=0;i<6;i++)ks.add(getMonthKey((APP_STATE.currentMonth+i)%12,APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));const so=Array.from(ks).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();if(so.length===0){em.style.display='block';return;}em.style.display='none';so.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),bal=inc-exp,cl=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral',tr=document.createElement('tr');tr.innerHTML=`<tr>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cl}">${formatCurrency(bal)}</td>`;tb.appendChild(tr);});}
 function checkDueAlerts(){const{expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),t=new Date().getDate(),u=expenses.filter(i=>i.dueDate&&i.dueDate>=t&&i.dueDate<=t+3);if(u.length>0)showToast(`⚠️ ${u.length} vencimento(s) nos próximos 3 dias!`,'error');}
 function exportPDF(){const{income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),inc=income.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear));t+='DESPESAS POR CATEGORIA:\n';Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500);}
 function applyViewOnly(){if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #btnExportExcel, #btnImportExcel, #btnExcelTemplate, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true);}
@@ -258,7 +258,7 @@ function deleteNote(i){const d=loadData(),k=getMonthKey(APP_STATE.currentMonth,A
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions(){const i=document.getElementById('itemDescription'),b=document.getElementById('smartSuggestion');i.addEventListener('input',e=>{const v=e.target.value.toLowerCase(),m=Object.keys(SMART_DICT).filter(k=>k.includes(v)&&v.length>1);if(m.length>0){b.innerHTML=m.map(x=>`<div class="suggestion-item" data-val="${x}">${x}</div>`).join('');b.classList.add('show');}else b.classList.remove('show');});i.addEventListener('blur',()=>setTimeout(()=>b.classList.remove('show'),150));b.addEventListener('click',e=>{const it=e.target.closest('.suggestion-item');if(!it)return;i.value=it.dataset.val;const c=SMART_DICT[it.dataset.val];if(c)document.getElementById('itemCategory').value=c;b.classList.remove('show');});}
 
-// ─── MODAL & SELETOR VISUAL (agora inclui mês atual) ───────────────
+// ─── MODAL & SELETOR VISUAL (com mês atual sempre incluso e pré-selecionado para novas receitas) ───────────────
 function renderMonthGrid(selected = [], includeCurrent = false) {
     const grid = document.getElementById('monthsCheckGrid'); 
     grid.innerHTML = '';
@@ -316,20 +316,33 @@ function openModal(type, id=null) {
             const isRec = (item.activeMonths||[]).length > 1;
             document.querySelector(`input[name="occurrenceType"][value="${isRec?'recurring':'single'}"]`).checked = true;
             document.getElementById('monthSelectionGrid').style.display = isRec ? 'block' : 'none';
-            if(isRec) renderMonthGrid(item.activeMonths, type==='expense'); // despesas incluem mês atual
+            if(isRec) renderMonthGrid(item.activeMonths, true); // sempre inclui mês atual
         }
+    } else {
+        // Para novo item, se for receita, queremos que o mês atual já venha selecionado quando o usuário marcar "Recorrente"
+        // Mas como o grid só é exibido quando o usuário escolher "Recorrente", vamos preparar um array padrão com o mês atual.
+        // Armazenamos esse array para ser usado quando o grid for renderizado.
+        window._defaultRecurringSelection = (type === 'income') ? [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)] : [];
     }
+    
     // Eventos de toggle
     document.querySelectorAll('input[name="occurrenceType"]').forEach(r => r.onchange = e => {
         const showGrid = e.target.value === 'recurring';
         document.getElementById('monthSelectionGrid').style.display = showGrid ? 'block' : 'none';
         if(showGrid) {
-            const selected = id ? (loadData().recurringItems.find(i=>i.id===id)?.activeMonths||[]) : [];
-            renderMonthGrid(selected, type==='expense');
+            let selected = [];
+            if(id) {
+                selected = loadData().recurringItems.find(i=>i.id===id)?.activeMonths || [];
+            } else {
+                // Para novo item, se for receita, usa o default com mês atual; caso contrário, vazio
+                selected = (type === 'income') ? [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)] : [];
+            }
+            renderMonthGrid(selected, true);
         }
     });
     ov.classList.add('active'); setTimeout(()=>document.getElementById('itemDescription').focus(),100);
 }
+
 function closeModal(){document.getElementById('modalOverlay').classList.remove('active');}
 
 function saveItem(e){
