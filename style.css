@@ -217,7 +217,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .month-selector {
     position: relative;
     background: var(--bg-secondary); /* fallback */
-    background-image: url('/images/fundo_mês.jpg'); /* ⬅️ Troque pela sua URL */
+    background-image: url('or-amento/fundo_mês.jpg'); /* ⬅️ Troque pela sua URL */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
