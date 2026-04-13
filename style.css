@@ -265,3 +265,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
         text-align: center;
     }
 }
+.btn-danger {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+}
+.btn-danger:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+}
