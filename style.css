@@ -187,49 +187,9 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .btn-login { width: 100%; padding: 0.85rem; font-size: 1rem; justify-content: center; }
 .login-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; opacity: 0.7; }
 
-.footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); margin-top: 2rem; }
-kbd { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-family: monospace; }
-
-@media (max-width: 900px) {
-    .month-selector-wrapper { flex-direction: column; }
-    .calculator, .mini-calendar { width: 100%; flex: none; }
-    .summary-cards { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-    .summary-cards { grid-template-columns: 1fr; } .container { padding: 1rem; } .section { padding: 1rem; }
-    .item-card { flex-direction: column; align-items: flex-start; } .item-value { align-self: flex-end; } .item-actions { align-self: flex-end; }
-}
-::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: var(--bg-primary); } ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-::selection { background: var(--accent-primary); color: white; }
-@media print { .header, .month-selector, .btn, .modal-overlay, .login-screen, .footer, .filter-bar, .search-input, .item-actions, .smart-suggestion, .mini-calendar, .calculator { display: none !important; } body { background: white; color: black; } .card-value, .item-value { color: black !important; } }
-/* Escudo do Corinthians - sombra lateral */
-.corinthians-shadow {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 120px;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.15;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-.corinthians-logo {
-    font-size: 6rem;
-    font-weight: 900;
-    color: #000;
-    text-shadow: 0 0 10px rgba(0,0,0,0.3);
-    transform: rotate(-5deg) translateX(-20px);
-    white-space: nowrap;
-    font-family: monospace;
-}
-[data-theme="dark"] .corinthians-logo {
-    color: #fff;
-}
-@media (max-width: 768px) {
-    .corinthians-shadow { width: 70px; }
-    .corinthians-logo { font-size: 3rem; transform: rotate(-5deg) translateX(-15px); }
+.badge-frequency {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    text-transform: lowercase;
 }
