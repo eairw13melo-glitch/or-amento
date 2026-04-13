@@ -212,3 +212,42 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     .selection-controls { justify-content: center; }
     .selected-total { text-align: center; }
 }
+
+/* Fundo personalizado para o seletor de mês */
+.month-selector {
+    position: relative;
+    background: var(--bg-secondary); /* fallback */
+    background-image: url('https://exemplo.com/sua-imagem.jpg'); /* ⬅️ Troque pela sua URL */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Overlay escuro para melhorar legibilidade do texto */
+.month-selector::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Ajuste a opacidade (0.4 = 40% escuro) */
+    z-index: 1;
+    border-radius: inherit;
+}
+
+/* Garante que os botões e o texto fiquem acima do overlay */
+.month-selector .btn-icon,
+.month-selector .month-display {
+    position: relative;
+    z-index: 2;
+}
+
+/* Opcional: ajuste a cor do texto para garantir contraste */
+.month-selector .month-display h2,
+.month-selector .month-display span {
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
