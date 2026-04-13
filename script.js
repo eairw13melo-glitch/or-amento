@@ -1,10 +1,10 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.0 (Melhorias completas)
+   ORÇAMENTO FAMILIAR - V9.1 (Correção total)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
     sessionDuration: 7 * 24 * 60 * 60 * 1000,
-    SALT: 'OrcamentoFamiliar2026SecureSalt'  // Salt fixo para hash
+    SALT: 'OrcamentoFamiliar2026SecureSalt'
 };
 const APP_STATE = { 
     currentMonth: new Date().getMonth(), 
@@ -28,20 +28,95 @@ let categoryChart = null;
 let evolutionChart = null;
 let deferredPrompt = null;
 
-// ─── STORAGE & MIGRAÇÃO ───────────────────
+// --- Categorias personalizadas ---
+let customCategories = [];
+
+function loadCustomCategories() {
+    const saved = localStorage.getItem('customCategories');
+    customCategories = saved ? JSON.parse(saved) : [];
+}
+
+function saveCustomCategories() {
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    renderCategorySelect();
+    renderFilterBar();
+    renderChart();
+    renderAll(); // força atualização completa
+}
+
+function renderCategorySelect() {
+    const select = document.getElementById('itemCategory');
+    if (!select) return;
+    const defaultCats = Object.entries(CATEGORY_LABELS).map(([val, label]) => ({ value: val, label }));
+    const allCats = [...defaultCats, ...customCategories.map(c => ({ value: c.id, label: c.name }))];
+    select.innerHTML = allCats.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+}
+
+function openCategoriesModal() {
+    const modal = document.getElementById('modalCategoriesOverlay');
+    const listDiv = document.getElementById('categoriesList');
+    if (!modal || !listDiv) return;
+    listDiv.innerHTML = '';
+    customCategories.forEach((cat, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.marginBottom = '0.5rem';
+        div.style.alignItems = 'center';
+        div.innerHTML = `
+            <span>${escapeHtml(cat.name)}</span>
+            <div>
+                <button class="btn-edit-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer; font-size:1.1rem;" title="Editar">✏️</button>
+                <button class="btn-delete-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer; font-size:1.1rem;" title="Excluir">🗑️</button>
+            </div>
+        `;
+        listDiv.appendChild(div);
+    });
+    // Eventos dos botões
+    document.querySelectorAll('.btn-edit-cat').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(btn.dataset.idx);
+            const newName = prompt('Editar categoria:', customCategories[idx].name);
+            if (newName && newName.trim() && !customCategories.some(c => c.name === newName.trim())) {
+                customCategories[idx].name = newName.trim();
+                saveCustomCategories();
+                openCategoriesModal(); // recarrega
+            } else if (newName && customCategories.some(c => c.name === newName.trim())) {
+                showToast('Já existe uma categoria com esse nome!', 'error');
+            }
+        });
+    });
+    document.querySelectorAll('.btn-delete-cat').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(btn.dataset.idx);
+            if (confirm(`Excluir categoria "${customCategories[idx].name}"?`)) {
+                customCategories.splice(idx, 1);
+                saveCustomCategories();
+                openCategoriesModal();
+            }
+        });
+    });
+    modal.classList.add('active');
+}
+
+function closeCategoriesModal() {
+    const modal = document.getElementById('modalCategoriesOverlay');
+    if (modal) modal.classList.remove('active');
+}
+
+// --- STORAGE ---
 function loadData() {
     try { 
         const raw = localStorage.getItem('budgetAppData'); 
         if (!raw) return { recurringItems: [], monthOverrides: {}, categoryGoals: {} }; 
         let data = JSON.parse(raw);
-        // Migração do formato antigo (se existir)
         if (data.recurringItems === undefined && Object.keys(data).some(k => /^\d{4}-\d{2}$/.test(k))) { 
             const newData = { recurringItems: [], monthOverrides: {}, categoryGoals: {} }; 
             Object.keys(data).forEach(k => { 
                 data[k].income.forEach(i => newData.recurringItems.push({ ...i, type: 'income', activeMonths: [k] })); 
                 data[k].expenses.forEach(i => newData.recurringItems.push({ ...i, type: 'expense', activeMonths: [k] })); 
             }); 
-            data = newData; saveData(data); showToast('Dados migrados para novo sistema! 🔄'); 
+            data = newData; saveData(data); showToast('Dados migrados! 🔄'); 
         }
         data.recurringItems = data.recurringItems || [];
         data.monthOverrides = data.monthOverrides || {};
@@ -82,20 +157,13 @@ function getMonthData(m, y) {
     };
 }
 
-// ─── UTILITÁRIOS DE DATA E CÁLCULO DE FREQUÊNCIA (MELHORADO) ──────────
+// --- Utilitários ---
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 
-// Calcula quantas vezes um determinado dia da semana ocorre no mês
 function getWeeklyOccurrences(year, month, weekdayTarget) {
-    // weekdayTarget: 0=domingo, 1=segunda, ..., 6=sábado
-    const firstDay = new Date(year, month, 1);
-    const firstWeekday = firstDay.getDay();
-    const daysInMonth = getDaysInMonth(year, month);
-    
     let occurrences = 0;
-    for (let d = 1; d <= daysInMonth; d++) {
-        const currentWeekday = new Date(year, month, d).getDay();
-        if (currentWeekday === weekdayTarget) occurrences++;
+    for (let d = 1; d <= getDaysInMonth(year, month); d++) {
+        if (new Date(year, month, d).getDay() === weekdayTarget) occurrences++;
     }
     return occurrences;
 }
@@ -103,16 +171,10 @@ function getWeeklyOccurrences(year, month, weekdayTarget) {
 function normalizeValue(item, month, year) {
     let base = item.amount || 0;
     if (item.type === 'income' && item.frequency && item.frequency !== 'monthly') {
-        if (item.frequency === 'daily') {
-            const days = getDaysInMonth(year, month);
-            return base * days;
-        } else if (item.frequency === 'weekly') {
-            // Para weekly, precisamos saber o dia da semana da primeira ocorrência.
-            // Por simplicidade, assumimos que a receita começa no primeiro dia do mês.
-            // Uma melhoria seria armazenar o dia da semana no item.
+        if (item.frequency === 'daily') return base * getDaysInMonth(year, month);
+        if (item.frequency === 'weekly') {
             const firstDayWeekday = new Date(year, month, 1).getDay();
-            const weeks = getWeeklyOccurrences(year, month, firstDayWeekday);
-            return base * weeks;
+            return base * getWeeklyOccurrences(year, month, firstDayWeekday);
         }
     }
     return base;
@@ -132,32 +194,22 @@ function formatCurrency(v) {
 
 function parseCurrency(str) { 
     if (typeof str === 'number') return str; 
-    // Remove tudo exceto dígitos, vírgula e ponto, depois converte
     let cleaned = str.replace(/[^\d,.-]/g, '').replace(',', '.');
     let val = parseFloat(cleaned);
     return isNaN(val) ? 0 : val;
 }
 
-// Máscara de valor em tempo real (melhorada)
 function setupAmountMask() {
     const amountInput = document.getElementById('itemAmount');
     if (!amountInput) return;
-    
-    amountInput.addEventListener('input', function(e) {
-        let value = this.value.replace(/\D/g, ''); // remove tudo não numérico
-        if (value === '') {
-            this.value = '';
-            return;
-        }
-        // Converte para centavos
+    amountInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, '');
+        if (value === '') { this.value = ''; return; }
         let number = parseInt(value, 10) / 100;
-        let formatted = number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        this.value = formatted;
+        this.value = number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     });
-    
     amountInput.addEventListener('blur', function() {
         if (this.value === '') this.value = '0,00';
-        else if (this.value === '0') this.value = '0,00';
     });
 }
 
@@ -176,11 +228,20 @@ function getDurationLabel(months) {
     return `🔄 ${months.length}x`;
 }
 
-// ─── AUTH & LOGOUT (com salt) ─────────────────────────
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// --- Auth ---
 async function hashPassword(pwd, salt = APP_CONFIG.SALT) {
     const encoder = new TextEncoder();
-    const salted = pwd + salt;
-    const data = encoder.encode(salted);
+    const data = encoder.encode(pwd + salt);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -231,7 +292,7 @@ async function logout() {
     setTimeout(() => location.reload(), 800); 
 }
 
-// ─── THEME & PWA & CALC ───────────────────
+// --- Theme & PWA & Calc ---
 function initTheme() { 
     const saved = localStorage.getItem('appTheme'); 
     const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); 
@@ -307,9 +368,10 @@ function initCalculator() {
     }); 
 }
 
-// ─── MINI CALENDÁRIO ──────────────────────
+// --- Mini Calendário ---
 function renderCalendar() {
     const grid = document.getElementById('miniCalendar');
+    if (!grid) return;
     grid.innerHTML = `
         <div class="mini-calendar-title">📅 Próximos Meses</div>
         <div class="cal-grid" id="calGrid"></div>
@@ -319,7 +381,6 @@ function renderCalendar() {
     for(let i = 0; i < 12; i++) {
         let m = APP_STATE.currentMonth + i, y = APP_STATE.currentYear + Math.floor(m / 12);
         m %= 12;
-        const key = getMonthKey(m, y);
         const md = getMonthData(m, y);
         const has = md.income.length > 0 || md.expenses.length > 0;
         const active = (m === APP_STATE.currentMonth && y === APP_STATE.currentYear);
@@ -346,7 +407,7 @@ function renderCalendar() {
     };
 }
 
-// ─── UI RENDER ────────────────────────────
+// --- Renderização principal ---
 function updateMonthDisplay() { 
     document.getElementById('currentMonth').textContent = MONTHS[APP_STATE.currentMonth]; 
     document.getElementById('currentYear').textContent = APP_STATE.currentYear; 
@@ -381,13 +442,7 @@ function updateSummary() {
     const goal = parseCurrency(document.getElementById('savingsGoal').value) || 500;
     const pct = goal>0 ? (Math.max(0,bal)/goal)*100 : 0;
     document.getElementById('totalSavings').textContent = formatCurrency(Math.max(0,bal));
-    const fill = document.getElementById('savingsFill');
-    fill.style.width = Math.min(100,pct)+'%';
-    const savingsBar = document.getElementById('savingsBar');
-    if (savingsBar) {
-        savingsBar.setAttribute('aria-valuenow', Math.min(100,pct));
-        savingsBar.setAttribute('aria-valuetext', `${pct.toFixed(1)}% da meta`);
-    }
+    document.getElementById('savingsFill').style.width = Math.min(100,pct)+'%';
     document.getElementById('savingsPercent').textContent = `${pct.toFixed(1)}% da meta de ${formatCurrency(goal)}`;
     renderCategoryGoals(expenses);
 }
@@ -414,22 +469,21 @@ function renderCategoryGoals(expenses) {
         totals[cat] = (totals[cat] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear);
     });
     
-    let anyOver = false;
-    Object.keys(CATEGORY_LABELS).forEach(c => {
+    // Categorias padrão + personalizadas
+    const allCategoryKeys = [...Object.keys(CATEGORY_LABELS), ...customCategories.map(c => c.id)];
+    allCategoryKeys.forEach(c => {
         const t = totals[c] || 0;
         const gl = goals[c] || 1000;
         const p = gl > 0 ? (t / gl) * 100 : 0;
         const isOver = t > gl;
-        if (isOver) anyOver = true;
-        
+        const label = CATEGORY_LABELS[c] || customCategories.find(cat => cat.id === c)?.name || c;
         const d = document.createElement('div');
         d.className = 'goal-item';
         d.setAttribute('role', 'button');
         d.setAttribute('tabindex', '0');
-        d.setAttribute('aria-label', `${CATEGORY_LABELS[c]}: gasto ${formatCurrency(t)} de meta ${formatCurrency(gl)}. ${isOver ? 'Ultrapassou a meta.' : ''}`);
         d.innerHTML = `
             <div class="goal-label">
-                <span>${CATEGORY_LABELS[c]} ${isOver ? '⚠️' : ''}</span>
+                <span>${label} ${isOver ? '⚠️' : ''}</span>
                 <span>${formatCurrency(t)} / ${formatCurrency(gl)}</span>
             </div>
             <div class="goal-bar">
@@ -438,7 +492,7 @@ function renderCategoryGoals(expenses) {
             ${isOver ? `<div class="goal-alert">❗ Ultrapassou a meta em ${formatCurrency(t - gl)}</div>` : ''}
         `;
         d.onclick = () => {
-            const n = prompt(`Meta para ${CATEGORY_LABELS[c]} (R$):`, gl);
+            const n = prompt(`Meta para ${label} (R$):`, gl);
             if (n !== null) {
                 const newGoal = parseCurrency(n);
                 if (!isNaN(newGoal)) {
@@ -450,13 +504,8 @@ function renderCategoryGoals(expenses) {
                 }
             }
         };
-        d.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') d.click(); };
         g.appendChild(d);
     });
-    
-    if (anyOver) {
-        showToast('⚠️ Atenção: uma ou mais categorias ultrapassaram a meta!', 'error');
-    }
 }
 
 function renderItems(type) {
@@ -494,7 +543,11 @@ function renderItems(type) {
         const sign = type==='income' ? '+' : '-';
         const lbl = getDurationLabel(item.activeMonths || []);
         const bCls = lbl.includes('Único') ? 'badge-single' : (lbl.includes('Longo') ? 'badge-recurring' : 'badge-limited');
-        let cat = type==='expense' && item.category ? `<span class="item-category">${CATEGORY_LABELS[item.category] || item.category}</span>` : '';
+        let categoryLabel = '';
+        if (type==='expense' && item.category) {
+            categoryLabel = CATEGORY_LABELS[item.category] || customCategories.find(c => c.id === item.category)?.name || item.category;
+            categoryLabel = `<span class="item-category">${categoryLabel}</span>`;
+        }
         let due = item.dueDate ? `<span class="item-due">Venc. ${new Date(item.dueDate).toLocaleDateString('pt-BR')}</span>` : '';
         let freqBadge = '';
         if (type === 'income' && item.frequency && item.frequency !== 'monthly') {
@@ -503,7 +556,7 @@ function renderItems(type) {
         card.innerHTML = `
             <div class="item-info">
                 <div class="item-description">${escapeHtml(item.description)}<span class="badge ${bCls}">${lbl}</span>${freqBadge}</div>
-                <div class="item-meta">${cat}${due}</div>
+                <div class="item-meta">${categoryLabel}${due}</div>
             </div>
             <div class="item-value ${cls}">${sign} ${formatCurrency(val)}</div>
             <div class="item-actions">
@@ -515,23 +568,18 @@ function renderItems(type) {
     });
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
-    expenses.forEach(i => totals[i.category || 'outros'] = (totals[i.category || 'outros'] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear));
+    expenses.forEach(i => {
+        const cat = i.category || 'outros';
+        totals[cat] = (totals[cat] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear);
+    });
     const ctx = document.getElementById('categoryChart').getContext('2d');
     if (categoryChart) categoryChart.destroy();
-    const labels = Object.keys(totals).map(c => CATEGORY_LABELS[c] || c);
+    const labels = Object.keys(totals).map(c => {
+        return CATEGORY_LABELS[c] || customCategories.find(cat => cat.id === c)?.name || c;
+    });
     const data = Object.values(totals);
     const backgroundColors = Object.keys(totals).map(c => CATEGORY_COLORS[c] || '#636e72');
     categoryChart = new Chart(ctx, {
@@ -583,34 +631,9 @@ function renderEvolutionChart() {
         data: {
             labels: labels,
             datasets: [
-                {
-                    label: 'Receitas',
-                    data: incomes,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 4
-                },
-                {
-                    label: 'Despesas',
-                    data: expenses,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 4
-                },
-                {
-                    label: 'Saldo',
-                    data: balances,
-                    borderColor: '#5b4cdb',
-                    backgroundColor: 'rgba(91, 76, 219, 0.05)',
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 4,
-                    borderDash: [5, 5]
-                }
+                { label: 'Receitas', data: incomes, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.3, fill: true, pointRadius: 4 },
+                { label: 'Despesas', data: expenses, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', tension: 0.3, fill: true, pointRadius: 4 },
+                { label: 'Saldo', data: balances, borderColor: '#5b4cdb', backgroundColor: 'rgba(91,76,219,0.05)', tension: 0.3, fill: true, pointRadius: 4, borderDash: [5,5] }
             ]
         },
         options: {
@@ -676,10 +699,8 @@ function checkDueAlerts() {
     }
 }
 
-// PDF Avançado (agora com as bibliotecas carregadas)
 async function exportAdvancedPDF() {
     showToast('Gerando PDF avançado...', 'success');
-    
     const pdfContent = document.createElement('div');
     pdfContent.style.padding = '20px';
     pdfContent.style.backgroundColor = 'white';
@@ -695,23 +716,17 @@ async function exportAdvancedPDF() {
     expenseTable.style.borderCollapse = 'collapse';
     expenseTable.style.marginTop = '20px';
     expenseTable.innerHTML = `
-        <thead>
-            <tr>
-                <th style="border-bottom:2px solid #ccc;padding:8px;text-align:left">Descrição</th>
-                <th style="border-bottom:2px solid #ccc;padding:8px;text-align:left">Categoria</th>
-                <th style="border-bottom:2px solid #ccc;padding:8px;text-align:right">Valor</th>
-                <th style="border-bottom:2px solid #ccc;padding:8px;text-align:right">Vencimento</th>
-            </tr>
-        </thead>
+        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Vencimento</th></tr></thead>
         <tbody>
-            ${getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear).expenses.map(e => `
-                <tr>
-                    <td style="padding:6px;border-bottom:1px solid #ddd">${escapeHtml(e.description)}</td>
-                    <td style="padding:6px;border-bottom:1px solid #ddd">${CATEGORY_LABELS[e.category] || e.category}</td>
-                    <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">${formatCurrency(normalizeValue(e, APP_STATE.currentMonth, APP_STATE.currentYear))}</td>
-                    <td style="padding:6px;border-bottom:1px solid #ddd;text-align:right">${e.dueDate ? new Date(e.dueDate).toLocaleDateString('pt-BR') : '-'}</td>
-                </tr>
-            `).join('')}
+            ${getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear).expenses.map(e => {
+                const catName = CATEGORY_LABELS[e.category] || customCategories.find(c => c.id === e.category)?.name || e.category;
+                return `<tr>
+                    <td>${escapeHtml(e.description)}</td>
+                    <td>${catName}</td>
+                    <td style="text-align:right">${formatCurrency(normalizeValue(e, APP_STATE.currentMonth, APP_STATE.currentYear))}</td>
+                    <td style="text-align:right">${e.dueDate ? new Date(e.dueDate).toLocaleDateString('pt-BR') : '-'}</td>
+                </tr>`;
+            }).join('')}
         </tbody>
     `;
     
@@ -724,11 +739,9 @@ async function exportAdvancedPDF() {
     pdfContent.appendChild(expenseTable);
     
     document.body.appendChild(pdfContent);
-    
     try {
         const canvas = await html2canvas(pdfContent, { scale: 2, backgroundColor: '#ffffff' });
         document.body.removeChild(pdfContent);
-        
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -736,22 +749,19 @@ async function exportAdvancedPDF() {
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
-        
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= (pdf.internal.pageSize.height - 10);
-        
         while (heightLeft > 0) {
             position = heightLeft - imgHeight;
             pdf.addPage();
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pdf.internal.pageSize.height;
         }
-        
         pdf.save(`orcamento_${MONTHS[APP_STATE.currentMonth]}_${APP_STATE.currentYear}.pdf`);
         showToast('PDF gerado com sucesso!');
     } catch (err) {
         console.error(err);
-        showToast('Erro ao gerar PDF. Verifique o console.', 'error');
+        showToast('Erro ao gerar PDF.', 'error');
         if (document.body.contains(pdfContent)) document.body.removeChild(pdfContent);
     }
 }
@@ -764,7 +774,7 @@ function applyViewOnly() {
     document.querySelectorAll('input, select, button[type="submit"]').forEach(el => el.disabled = true);
 }
 
-// ─── AGENDA ───────────────────────────────
+// --- Agenda ---
 function renderNotes() {
     const {notes} = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const list = document.getElementById('notesList');
@@ -812,7 +822,7 @@ function deleteNote(i) {
     }
 }
 
-// ─── SMART CATEGORIES ─────────────────────
+// --- Smart Suggestions ---
 function setupSmartSuggestions() {
     const i = document.getElementById('itemDescription');
     const b = document.getElementById('smartSuggestion');
@@ -836,7 +846,7 @@ function setupSmartSuggestions() {
     });
 }
 
-// ─── MODAL & SELETOR VISUAL (melhorado) ───────────────
+// --- Modal principal ---
 function renderMonthGrid(selected = [], includeCurrent = false) {
     const grid = document.getElementById('monthsCheckGrid'); 
     if (!grid) return;
@@ -871,6 +881,7 @@ function openModal(type, id=null) {
         freqGrp.style.display = 'none';
         installmentGrp.style.display = 'block';
         title.textContent = id ? 'Editar Despesa' : 'Adicionar Despesa';
+        renderCategorySelect(); // garante que o select está atualizado
     } else {
         catGrp.style.display = 'none';
         occGrp.style.display = 'block';
@@ -880,8 +891,6 @@ function openModal(type, id=null) {
     }
     
     document.getElementById('smartSuggestion').classList.remove('show');
-    
-    // Reset formulário
     document.getElementById('itemDescription').value = '';
     document.getElementById('itemAmount').value = '';
     document.getElementById('itemDueDate').value = '';
@@ -913,7 +922,10 @@ function openModal(type, id=null) {
                     document.getElementById('itemDueDate').value = dueDate.toISOString().split('T')[0];
                 }
             }
-            if(type === 'expense') document.getElementById('itemCategory').value = item.category || 'outros';
+            if(type === 'expense') {
+                renderCategorySelect();
+                document.getElementById('itemCategory').value = item.category || 'outros';
+            }
             if(type === 'income' && item.frequency) {
                 document.querySelector(`input[name="frequency"][value="${item.frequency}"]`).checked = true;
             }
@@ -921,15 +933,12 @@ function openModal(type, id=null) {
             document.querySelector(`input[name="occurrenceType"][value="${isRec ? 'recurring' : 'single'}"]`).checked = true;
             document.getElementById('monthSelectionGrid').style.display = isRec ? 'block' : 'none';
             if(isRec) renderMonthGrid(item.activeMonths, true);
-            
-            // Se for despesa e tiver número de parcelas
             if (type === 'expense' && item.installments) {
                 document.getElementById('installments').value = item.installments;
             }
         }
     }
     
-    // Eventos de toggle
     document.querySelectorAll('input[name="occurrenceType"]').forEach(r => {
         r.onchange = (e) => {
             const showGrid = e.target.value === 'recurring';
@@ -1016,7 +1025,6 @@ function saveItem(e) {
         showToast('Item atualizado! 🔄');
     } else {
         if(activeMonths.length > 1 || (type === 'expense' && installments > 1)) {
-            // Se for parcelado, gerar múltiplos meses automaticamente
             if (type === 'expense' && installments > 1) {
                 const startMonthKey = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
                 const [year, month] = startMonthKey.split('-').map(Number);
@@ -1078,17 +1086,12 @@ function editItem(type, id) {
     openModal(type, id);
 }
 
-// ─── EXCEL ────────────────────────────────
+// --- Excel ---
 function downloadExcelTemplate() {
     const wb = XLSX.utils.book_new();
     const data = [{
-        Tipo: 'Despesa',
-        Descrição: 'Aluguel',
-        Categoria: 'moradia',
-        Valor: 1200,
-        Meses_Ativos: '2025-01,2025-02,2025-03',
-        Dia_Vencimento: '2025-01-10',
-        Frequencia: 'mensal'
+        Tipo: 'Despesa', Descrição: 'Aluguel', Categoria: 'moradia', Valor: 1200,
+        Meses_Ativos: '2025-01,2025-02,2025-03', Dia_Vencimento: '2025-01-10', Frequencia: 'mensal'
     }];
     const ws = XLSX.utils.json_to_sheet(data);
     ws['!cols'] = [{wch:15},{wch:30},{wch:15},{wch:10},{wch:30},{wch:15},{wch:12}];
@@ -1167,19 +1170,20 @@ function importExcel(file) {
     reader.readAsBinaryString(file);
 }
 
-// ─── FILTER BAR ───────────────────────────
+// --- Filter Bar ---
 function renderFilterBar() {
     const filterBar = document.getElementById('filterBar');
     if (!filterBar) return;
     filterBar.innerHTML = '';
-    const filters = ['all', ...Object.keys(CATEGORY_LABELS)];
+    const filters = ['all', ...Object.keys(CATEGORY_LABELS), ...customCategories.map(c => c.id)];
     filters.forEach(f => {
         const btn = document.createElement('button');
         btn.className = `filter-btn ${APP_STATE.currentFilter === f ? 'active' : ''}`;
         btn.setAttribute('data-filter', f);
         btn.setAttribute('role', 'tab');
         btn.setAttribute('aria-selected', APP_STATE.currentFilter === f);
-        btn.textContent = f === 'all' ? '📌 Todas' : CATEGORY_LABELS[f];
+        let label = f === 'all' ? '📌 Todas' : (CATEGORY_LABELS[f] || customCategories.find(c => c.id === f)?.name || f);
+        btn.textContent = label;
         btn.onclick = () => {
             document.querySelectorAll('.filter-btn').forEach(x => {
                 x.classList.remove('active');
@@ -1194,7 +1198,7 @@ function renderFilterBar() {
     });
 }
 
-// ─── INIT ─────────────────────────────────
+// --- Render All ---
 function renderAll() {
     updateMonthDisplay();
     updateSummary();
@@ -1209,7 +1213,10 @@ function renderAll() {
     checkDueAlerts();
 }
 
+// --- Init App ---
 function initApp() {
+    loadCustomCategories();
+    renderCategorySelect();
     if(APP_STATE.isViewOnly) applyViewOnly();
     renderAll();
     initTheme();
@@ -1221,18 +1228,12 @@ function initApp() {
     document.getElementById('btnThemeToggle').onclick = toggleTheme;
     document.getElementById('btnPrevMonth').onclick = () => { 
         APP_STATE.currentMonth--; 
-        if(APP_STATE.currentMonth < 0) { 
-            APP_STATE.currentMonth = 11; 
-            APP_STATE.currentYear--; 
-        } 
+        if(APP_STATE.currentMonth < 0) { APP_STATE.currentMonth = 11; APP_STATE.currentYear--; } 
         renderAll(); 
     };
     document.getElementById('btnNextMonth').onclick = () => { 
         APP_STATE.currentMonth++; 
-        if(APP_STATE.currentMonth > 11) { 
-            APP_STATE.currentMonth = 0; 
-            APP_STATE.currentYear++; 
-        } 
+        if(APP_STATE.currentMonth > 11) { APP_STATE.currentMonth = 0; APP_STATE.currentYear++; } 
         renderAll(); 
     };
     document.querySelectorAll('.btn-add').forEach(b => b.onclick = () => { 
@@ -1294,13 +1295,26 @@ function initApp() {
     document.getElementById('btnAddNote').onclick = () => addNote(document.getElementById('noteInput').value);
     document.getElementById('noteInput').onkeydown = e => { if(e.key === 'Enter') { e.preventDefault(); addNote(document.getElementById('noteInput').value); } };
     
-    document.onkeydown = e => { 
-        if(e.key === 'Escape') closeModal(); 
-    };
-    window.onresize = () => { 
-        if(categoryChart) categoryChart.resize(); 
-        if(evolutionChart) evolutionChart.resize(); 
-    };
+    // Gerenciar categorias
+    document.getElementById('btnManageCategories')?.addEventListener('click', openCategoriesModal);
+    document.getElementById('btnCloseCatModal')?.addEventListener('click', closeCategoriesModal);
+    document.getElementById('btnAddCategory')?.addEventListener('click', () => {
+        const name = document.getElementById('newCategoryName').value.trim();
+        if (name && !customCategories.some(c => c.name === name)) {
+            customCategories.push({ id: 'cat_' + Date.now(), name });
+            saveCustomCategories();
+            document.getElementById('newCategoryName').value = '';
+            openCategoriesModal(); // recarrega
+        } else if (name && customCategories.some(c => c.name === name)) {
+            showToast('Categoria já existe!', 'error');
+        }
+    });
+    document.getElementById('modalCategoriesOverlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeCategoriesModal();
+    });
+    
+    document.onkeydown = e => { if(e.key === 'Escape') closeModal(); };
+    window.onresize = () => { if(categoryChart) categoryChart.resize(); if(evolutionChart) evolutionChart.resize(); };
     document.addEventListener('keydown', e => { 
         if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return; 
         if(e.key === 'ArrowLeft') document.getElementById('btnPrevMonth').click(); 
@@ -1313,7 +1327,7 @@ function initApp() {
     });
 }
 
-// Inicialização com auth
+// --- Autenticação inicial ---
 if(checkAuth()) { 
     initApp(); 
 } else {
@@ -1330,56 +1344,3 @@ if(checkAuth()) {
     };
     document.getElementById('password').focus();
 }
-
-
-// Gerenciamento de categorias personalizadas
-let customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
-
-function renderCategorySelect() {
-    const select = document.getElementById('itemCategory');
-    if (!select) return;
-    const defaultCats = Object.entries(CATEGORY_LABELS).map(([val, label]) => ({ value: val, label }));
-    const allCats = [...defaultCats, ...customCategories.map(c => ({ value: c.id, label: c.name }))];
-    select.innerHTML = allCats.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
-}
-
-function openCategoriesModal() {
-    const modal = document.getElementById('modalCategoriesOverlay');
-    const listDiv = document.getElementById('categoriesList');
-    listDiv.innerHTML = '';
-    customCategories.forEach((cat, idx) => {
-        const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.justifyContent = 'space-between';
-        div.style.marginBottom = '0.5rem';
-        div.innerHTML = `
-            <span>${cat.name}</span>
-            <div>
-                <button class="btn-edit-cat" data-idx="${idx}">✏️</button>
-                <button class="btn-delete-cat" data-idx="${idx}">🗑️</button>
-            </div>
-        `;
-        listDiv.appendChild(div);
-    });
-    modal.classList.add('active');
-}
-
-// Salvar categorias e atualizar tudo
-function saveCustomCategories() {
-    localStorage.setItem('customCategories', JSON.stringify(customCategories));
-    renderCategorySelect();
-    renderFilterBar(); // atualiza os filtros
-    renderChart();     // atualiza o gráfico
-}
-
-// Eventos
-document.getElementById('btnManageCategories')?.addEventListener('click', openCategoriesModal);
-document.getElementById('btnAddCategory')?.addEventListener('click', () => {
-    const name = document.getElementById('newCategoryName').value.trim();
-    if (name && !customCategories.some(c => c.name === name)) {
-        customCategories.push({ id: 'cat_' + Date.now(), name });
-        saveCustomCategories();
-        document.getElementById('newCategoryName').value = '';
-        openCategoriesModal(); // recarrega a lista
-    }
-});
