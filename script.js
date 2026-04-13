@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V6.1 (Meses a partir do próximo)
+   ORÇAMENTO FAMILIAR - V7.0 (Receitas recorrentes + frequência)
    ============================================ */
 const APP_CONFIG = { sessionKey: 'budgetAppSession', sessionDuration: 7 * 24 * 60 * 60 * 1000 };
 const APP_STATE = { currentMonth: new Date().getMonth(), currentYear: new Date().getFullYear(), currentFilter: 'all', isViewOnly: new URLSearchParams(window.location.search).get('viewonly') === '1' };
@@ -27,23 +27,9 @@ function loadData() {
         }
         data.recurringItems = data.recurringItems || [];
         data.monthOverrides = data.monthOverrides || {};
-        data.recurringItems = data.recurringItems.map(item => {
-            if (item.duration && !item.activeMonths) {
-                const start = item.startMonth || getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-                const months = [start];
-                if (item.duration === 'infinite') { for(let i=1; i<=24; i++) { let m = (parseInt(start.split('-')[1])-1 + i)%12; let y = parseInt(start.split('-')[0]) + Math.floor((parseInt(start.split('-')[1])-1 + i)/12); months.push(getMonthKey(m,y)); } }
-                else if (!isNaN(item.duration)) { for(let i=1; i<item.duration; i++) { let m = (parseInt(start.split('-')[1])-1 + i)%12; let y = parseInt(start.split('-')[0]) + Math.floor((parseInt(start.split('-')[1])-1 + i)/12); months.push(getMonthKey(m,y)); } }
-                item.activeMonths = months;
-                delete item.duration;
-            }
-            item.activeMonths = item.activeMonths || [];
-            return item;
-        });
-        Object.keys(data.monthOverrides).forEach(k => {
-            data.monthOverrides[k].notes = data.monthOverrides[k].notes || [];
-            data.monthOverrides[k].added = data.monthOverrides[k].added || [];
-            data.monthOverrides[k].removed = data.monthOverrides[k].removed || [];
-            data.monthOverrides[k].modified = data.monthOverrides[k].modified || {};
+        // Garantir campos de frequência para receitas antigas
+        data.recurringItems.forEach(item => {
+            if (item.type === 'income' && !item.frequency) item.frequency = 'monthly';
         });
         return data;
     } catch { return { recurringItems: [], monthOverrides: {} }; }
@@ -63,11 +49,35 @@ function getMonthData(m, y) {
     return { income: items.filter(i => i.type === 'income'), expenses: items.filter(i => i.type === 'expense'), key, notes: overrides.notes };
 }
 
-// ─── UTILITÁRIOS ──────────────────────────
+// ─── UTILITÁRIOS DE DATA E CÁLCULO DE FREQUÊNCIA ──────────
+function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
+function getWeeksInMonth(year, month) {
+    const firstDay = new Date(year, month, 1).getDay();
+    const days = getDaysInMonth(year, month);
+    return Math.ceil((firstDay + days) / 7);
+}
+function normalizeValue(item, month, year) {
+    let base = item.amount || 0;
+    if (item.type === 'income' && item.frequency && item.frequency !== 'monthly') {
+        if (item.frequency === 'daily') {
+            const days = getDaysInMonth(year, month);
+            return base * days;
+        } else if (item.frequency === 'weekly') {
+            const weeks = getWeeksInMonth(year, month);
+            return base * weeks;
+        }
+    }
+    return base;
+}
+function getFrequencyLabel(freq) {
+    if (freq === 'daily') return 'diário';
+    if (freq === 'weekly') return 'semanal';
+    return 'mensal';
+}
+
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); }
 function parseCurrency(str) { if (typeof str === 'number') return str; return parseFloat(str.replace(/[^\d,]/g, '').replace(',','.')) || 0; }
-function normalizeValue(item) { return item.amount || 0; }
 function showToast(msg, type='success') { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
 function getDurationLabel(months) {
     if (months.length === 1) return '📌 Único';
@@ -75,7 +85,7 @@ function getDurationLabel(months) {
     return `🔄 ${months.length}x`;
 }
 
-// ─── AUTH & LOGOUT (HASH SHA-256) ─────────
+// ─── AUTH & LOGOUT ─────────────────────────
 async function hashPassword(pwd) {
     const encoder = new TextEncoder();
     const data = encoder.encode(pwd);
@@ -158,7 +168,6 @@ function renderCalendar() {
         };
         cal.appendChild(btn);
     }
-    // Evento do botão "Voltar ao mês atual"
     document.getElementById('btnBackToCurrentMonth').onclick = () => {
         const hoje = new Date();
         APP_STATE.currentMonth = hoje.getMonth();
@@ -167,13 +176,18 @@ function renderCalendar() {
         showToast('✅ Voltou para o mês atual!', 'success');
     };
 }
+
 // ─── UI RENDER ────────────────────────────
 function updateMonthDisplay() { document.getElementById('currentMonth').textContent = MONTHS[APP_STATE.currentMonth]; document.getElementById('currentYear').textContent = APP_STATE.currentYear; }
 function updateSummary() {
     const {income, expenses} = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const inc=income.reduce((s,i)=>s+normalizeValue(i),0), exp=expenses.reduce((s,i)=>s+normalizeValue(i),0), bal=inc-exp;
+    const inc=income.reduce((s,i)=>s+normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear),0);
+    const exp=expenses.reduce((s,i)=>s+normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear),0);
+    const bal=inc-exp;
     const prevM=APP_STATE.currentMonth===0?11:APP_STATE.currentMonth-1, prevY=APP_STATE.currentMonth===0?APP_STATE.currentYear-1:APP_STATE.currentYear;
-    const prev=getMonthData(prevM,prevY), pInc=prev.income.reduce((s,i)=>s+normalizeValue(i),0), pExp=prev.expenses.reduce((s,i)=>s+normalizeValue(i),0);
+    const prev=getMonthData(prevM,prevY);
+    const pInc=prev.income.reduce((s,i)=>s+normalizeValue(i, prevM, prevY),0);
+    const pExp=prev.expenses.reduce((s,i)=>s+normalizeValue(i, prevM, prevY),0);
     const iD=pInc>0?((inc-pInc)/pInc)*100:0, eD=pExp>0?((exp-pExp)/pExp)*100:0;
     document.getElementById('totalIncome').textContent=formatCurrency(inc); document.getElementById('totalExpense').textContent=formatCurrency(exp);
     renderTrend('trendIncome',iD,inc>=pInc); renderTrend('trendExpense',eD,exp<=pExp);
@@ -183,7 +197,7 @@ function updateSummary() {
     renderCategoryGoals(expenses);
 }
 function renderTrend(id,pct,pos){const el=document.getElementById(id),v=Math.abs(pct).toFixed(1),s=pct===0?'':pct>0?'↑':'↓',c=pct>0?(pos?'trend-up':'trend-down'):(pos?'trend-down':'trend-up');el.className=`trend ${c}`;el.textContent=pct===0?'Sem dados anteriores':`${s} ${v}% vs mês ant.`;}
-function renderCategoryGoals(expenses){const g=document.getElementById('goalsGrid');g.innerHTML='';const goals=JSON.parse(localStorage.getItem('categoryGoals')||'{}'),totals={};expenses.forEach(i=>totals[i.category||'outros']=(totals[i.category||'outros']||0)+normalizeValue(i));Object.keys(CATEGORY_LABELS).forEach(c=>{const t=totals[c]||0,gl=goals[c]||1000,p=gl>0?(t/gl)*100:0;const d=document.createElement('div');d.className='goal-item';d.innerHTML=`<div class="goal-label"><span>${CATEGORY_LABELS[c]}</span><span>${formatCurrency(t)} / ${formatCurrency(gl)}</span></div><div class="goal-bar"><div class="goal-fill ${p>100?'over':''}" style="width:${Math.min(100,p)}%"></div></div>`;d.onclick=()=>{const n=prompt(`Meta para ${CATEGORY_LABELS[c]} (R$):`,gl);if(n!==null){goals[c]=parseCurrency(n);localStorage.setItem('categoryGoals',JSON.stringify(goals));renderAll();}};g.appendChild(d);});}
+function renderCategoryGoals(expenses){const g=document.getElementById('goalsGrid');g.innerHTML='';const goals=JSON.parse(localStorage.getItem('categoryGoals')||'{}'),totals={};expenses.forEach(i=>totals[i.category||'outros']=(totals[i.category||'outros']||0)+normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear));Object.keys(CATEGORY_LABELS).forEach(c=>{const t=totals[c]||0,gl=goals[c]||1000,p=gl>0?(t/gl)*100:0;const d=document.createElement('div');d.className='goal-item';d.innerHTML=`<div class="goal-label"><span>${CATEGORY_LABELS[c]}</span><span>${formatCurrency(t)} / ${formatCurrency(gl)}</span></div><div class="goal-bar"><div class="goal-fill ${p>100?'over':''}" style="width:${Math.min(100,p)}%"></div></div>`;d.onclick=()=>{const n=prompt(`Meta para ${CATEGORY_LABELS[c]} (R$):`,gl);if(n!==null){goals[c]=parseCurrency(n);localStorage.setItem('categoryGoals',JSON.stringify(goals));renderAll();}};g.appendChild(d);});}
 
 function renderItems(type) {
     const {income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear), listId=type==='income'?'incomeList':'expenseList', emptyId=type==='income'?'incomeEmpty':'expenseEmpty', listEl=document.getElementById(listId), emptyEl=document.getElementById(emptyId);
@@ -196,11 +210,18 @@ function renderItems(type) {
     }
     listEl.innerHTML='';if(items.length===0){emptyEl.style.display='block';return;}emptyEl.style.display='none';
     items.forEach(item=>{
-        const card=document.createElement('div');card.className='item-card';const val=normalizeValue(item),cls=type==='income'?'income':'expense',sign=type==='income'?'+':'-';
-        const lbl=getDurationLabel(item.activeMonths||[]), bCls=lbl.includes('Único')?'badge-single':lbl.includes('Longo')?'badge-recurring':'badge-limited';
+        const card=document.createElement('div');card.className='item-card';
+        const val = normalizeValue(item, APP_STATE.currentMonth, APP_STATE.currentYear);
+        const cls=type==='income'?'income':'expense',sign=type==='income'?'+':'-';
+        const lbl=getDurationLabel(item.activeMonths||[]);
+        const bCls=lbl.includes('Único')?'badge-single':lbl.includes('Longo')?'badge-recurring':'badge-limited';
         let cat=type==='expense'&&item.category?`<span class="item-category">${CATEGORY_LABELS[item.category]||item.category}</span>`:'';
         let due=item.dueDate?`<span class="item-due">Venc. dia ${item.dueDate}</span>`:'';
-        card.innerHTML=`<div class="item-info"><div class="item-description">${item.description}<span class="badge ${bCls}">${lbl}</span></div><div class="item-meta">${cat}${due}</div></div><div class="item-value ${cls}">${sign} ${formatCurrency(val)}</div><div class="item-actions"><button class="btn btn-edit" onclick="editItem('${type}','${item.id}')">✏️</button><button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')">🗑️</button></div>`;
+        let freqBadge = '';
+        if (type === 'income' && item.frequency && item.frequency !== 'monthly') {
+            freqBadge = `<span class="badge badge-frequency">${getFrequencyLabel(item.frequency)}</span>`;
+        }
+        card.innerHTML=`<div class="item-info"><div class="item-description">${item.description}<span class="badge ${bCls}">${lbl}</span>${freqBadge}</div><div class="item-meta">${cat}${due}</div></div><div class="item-value ${cls}">${sign} ${formatCurrency(val)}</div><div class="item-actions"><button class="btn btn-edit" onclick="editItem('${type}','${item.id}')">✏️</button><button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')">🗑️</button></div>`;
         listEl.appendChild(card);
     });
 }
@@ -208,7 +229,7 @@ function renderItems(type) {
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
-    expenses.forEach(i => totals[i.category || 'outros'] = (totals[i.category || 'outros'] || 0) + normalizeValue(i));
+    expenses.forEach(i => totals[i.category || 'outros'] = (totals[i.category || 'outros'] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear));
     const ctx = document.getElementById('categoryChart').getContext('2d');
     if (categoryChart) categoryChart.destroy();
     const labels = Object.keys(totals).map(c => CATEGORY_LABELS[c] || c);
@@ -224,9 +245,9 @@ function renderChart() {
     });
 }
 
-function renderHistory(){const d=loadData(),tb=document.getElementById('historyBody'),em=document.getElementById('historyEmpty');tb.innerHTML='';const ks=new Set(Object.keys(d.monthOverrides));ks.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));for(let i=0;i<6;i++)ks.add(getMonthKey((APP_STATE.currentMonth+i)%12,APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));const so=Array.from(ks).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();if(so.length===0){em.style.display='block';return;}em.style.display='none';so.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i),0),bal=inc-exp,cl=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral',tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cl}">${formatCurrency(bal)}</td>`;tb.appendChild(tr);});}
+function renderHistory(){const d=loadData(),tb=document.getElementById('historyBody'),em=document.getElementById('historyEmpty');tb.innerHTML='';const ks=new Set(Object.keys(d.monthOverrides));ks.add(getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear));for(let i=0;i<6;i++)ks.add(getMonthKey((APP_STATE.currentMonth+i)%12,APP_STATE.currentYear+Math.floor((APP_STATE.currentMonth+i)/12)));const so=Array.from(ks).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort().reverse();if(so.length===0){em.style.display='block';return;}em.style.display='none';so.forEach(k=>{const[y,m]=k.split('-');const{income,expenses}=getMonthData(parseInt(m)-1,parseInt(y));const inc=income.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,parseInt(m)-1,parseInt(y)),0),bal=inc-exp,cl=bal>0?'amount-positive':bal<0?'amount-negative':'amount-neutral',tr=document.createElement('tr');tr.innerHTML=`<td>${MONTHS[parseInt(m)-1]}/${y}</td><td class="amount-income">${formatCurrency(inc)}</td><td class="amount-expense">${formatCurrency(exp)}</td><td class="${cl}">${formatCurrency(bal)}</td>`;tb.appendChild(tr);});}
 function checkDueAlerts(){const{expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),t=new Date().getDate(),u=expenses.filter(i=>i.dueDate&&i.dueDate>=t&&i.dueDate<=t+3);if(u.length>0)showToast(`⚠️ ${u.length} vencimento(s) nos próximos 3 dias!`,'error');}
-function exportPDF(){const{income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),inc=income.reduce((s,i)=>s+normalizeValue(i),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i),0),bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i));t+='DESPESAS POR CATEGORIA:\n';Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500);}
+function exportPDF(){const{income,expenses}=getMonthData(APP_STATE.currentMonth,APP_STATE.currentYear),inc=income.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),exp=expenses.reduce((s,i)=>s+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear),0),bal=inc-exp;let t=`ORÇAMENTO FAMILIAR\n${MONTHS[APP_STATE.currentMonth]}/${APP_STATE.currentYear}\n${'═'.repeat(40)}\n\nRECEITAS: ${formatCurrency(inc)}\nDESPESAS: ${formatCurrency(exp)}\nSALDO: ${formatCurrency(bal)}\n\n`;const cats={};expenses.forEach(i=>cats[i.category||'outros']=(cats[i.category||'outros']||0)+normalizeValue(i,APP_STATE.currentMonth,APP_STATE.currentYear));t+='DESPESAS POR CATEGORIA:\n';Object.entries(cats).forEach(([c,v])=>t+=`• ${CATEGORY_LABELS[c]||c}: ${formatCurrency(v)}\n`);const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace;font-size:14px;white-space:pre-wrap;">${t}</pre>`);w.document.close();setTimeout(()=>w.print(),500);}
 function applyViewOnly(){if(!APP_STATE.isViewOnly)return;document.querySelectorAll('.btn-add, .btn-edit, .btn-delete, #btnExport, #btnImport, #btnExportPDF, #btnExportExcel, #btnImportExcel, #btnExcelTemplate, #searchExpenses, #savingsGoal, .goal-item, #btnAddNote, #noteInput').forEach(el=>el.style.display='none');document.querySelectorAll('input, select, button[type="submit"]').forEach(el=>el.disabled=true);}
 
 // ─── AGENDA ───────────────────────────────
@@ -237,12 +258,12 @@ function deleteNote(i){const d=loadData(),k=getMonthKey(APP_STATE.currentMonth,A
 // ─── SMART CATEGORIES ─────────────────────
 function setupSmartSuggestions(){const i=document.getElementById('itemDescription'),b=document.getElementById('smartSuggestion');i.addEventListener('input',e=>{const v=e.target.value.toLowerCase(),m=Object.keys(SMART_DICT).filter(k=>k.includes(v)&&v.length>1);if(m.length>0){b.innerHTML=m.map(x=>`<div class="suggestion-item" data-val="${x}">${x}</div>`).join('');b.classList.add('show');}else b.classList.remove('show');});i.addEventListener('blur',()=>setTimeout(()=>b.classList.remove('show'),150));b.addEventListener('click',e=>{const it=e.target.closest('.suggestion-item');if(!it)return;i.value=it.dataset.val;const c=SMART_DICT[it.dataset.val];if(c)document.getElementById('itemCategory').value=c;b.classList.remove('show');});}
 
-// ─── MODAL & SELETOR VISUAL (MESES A PARTIR DO PRÓXIMO) ───────────────
-function renderMonthGrid(selected = []) {
+// ─── MODAL & SELETOR VISUAL (agora inclui mês atual) ───────────────
+function renderMonthGrid(selected = [], includeCurrent = false) {
     const grid = document.getElementById('monthsCheckGrid'); 
     grid.innerHTML = '';
-    // Começa do próximo mês (i=1) até 12 meses à frente
-    for (let i = 1; i <= 12; i++) {
+    const start = includeCurrent ? 0 : 1;
+    for (let i = start; i <= 12; i++) {
         let m = (APP_STATE.currentMonth + i) % 12;
         let y = APP_STATE.currentYear + Math.floor((APP_STATE.currentMonth + i) / 12);
         const key = getMonthKey(m, y);
@@ -256,11 +277,30 @@ function renderMonthGrid(selected = []) {
 }
 
 function openModal(type, id=null) {
-    const ov=document.getElementById('modalOverlay'), title=document.getElementById('modalTitle'), catGrp=document.getElementById('categoryGroup'), occGrp=document.getElementById('occurrenceGroup');
+    const ov=document.getElementById('modalOverlay'), title=document.getElementById('modalTitle'), catGrp=document.getElementById('categoryGroup'), occGrp=document.getElementById('occurrenceGroup'), freqGrp=document.getElementById('frequencyGroup');
     document.getElementById('itemType').value=type; document.getElementById('itemId').value=id||'';
-    if(type==='expense'){catGrp.style.display='block';occGrp.style.display='block';title.textContent=id?'Editar Despesa':'Adicionar Despesa';}
-    else{catGrp.style.display='none';occGrp.style.display='none';title.textContent=id?'Editar Receita':'Adicionar Receita';}
+    if(type==='expense'){
+        catGrp.style.display='block';
+        occGrp.style.display='block';
+        freqGrp.style.display='none';
+        title.textContent=id?'Editar Despesa':'Adicionar Despesa';
+    } else {
+        catGrp.style.display='none';
+        occGrp.style.display='block';
+        freqGrp.style.display='block';
+        title.textContent=id?'Editar Receita':'Adicionar Receita';
+    }
     document.getElementById('smartSuggestion').classList.remove('show');
+    
+    // Reset formulário
+    document.getElementById('itemDescription').value='';
+    document.getElementById('itemAmount').value='';
+    document.getElementById('itemDueDate').value='';
+    document.querySelector('input[name="occurrenceType"][value="single"]').checked = true;
+    document.getElementById('monthSelectionGrid').style.display = 'none';
+    if(type==='income') {
+        document.querySelector('input[name="frequency"][value="monthly"]').checked = true;
+    }
     
     if(id){
         const d=loadData(); let item=d.recurringItems.find(i=>i.id===id);
@@ -269,24 +309,24 @@ function openModal(type, id=null) {
             document.getElementById('itemDescription').value=item.description;
             document.getElementById('itemAmount').value=item.amount.toString().replace('.',',');
             document.getElementById('itemDueDate').value=item.dueDate||'';
-            if(type==='expense')document.getElementById('itemCategory').value=item.category||'outros';
-            if(type==='expense'){
-                const isRec = (item.activeMonths||[]).length > 1;
-                document.querySelector(`input[name="occurrenceType"][value="${isRec?'recurring':'single'}"]`).checked = true;
-                document.getElementById('monthSelectionGrid').style.display = isRec ? 'block' : 'none';
-                if(isRec) renderMonthGrid(item.activeMonths);
+            if(type==='expense') document.getElementById('itemCategory').value=item.category||'outros';
+            if(type==='income' && item.frequency) {
+                document.querySelector(`input[name="frequency"][value="${item.frequency}"]`).checked = true;
             }
-        }
-    }else{
-        document.getElementById('itemForm').reset();
-        if(type==='expense'){
-            document.querySelector('input[name="occurrenceType"][value="single"]').checked = true;
-            document.getElementById('monthSelectionGrid').style.display = 'none';
+            const isRec = (item.activeMonths||[]).length > 1;
+            document.querySelector(`input[name="occurrenceType"][value="${isRec?'recurring':'single'}"]`).checked = true;
+            document.getElementById('monthSelectionGrid').style.display = isRec ? 'block' : 'none';
+            if(isRec) renderMonthGrid(item.activeMonths, type==='expense'); // despesas incluem mês atual
         }
     }
+    // Eventos de toggle
     document.querySelectorAll('input[name="occurrenceType"]').forEach(r => r.onchange = e => {
-        document.getElementById('monthSelectionGrid').style.display = e.target.value === 'recurring' ? 'block' : 'none';
-        if(e.target.value==='recurring') renderMonthGrid(id ? (loadData().recurringItems.find(i=>i.id===id)?.activeMonths||[]) : []);
+        const showGrid = e.target.value === 'recurring';
+        document.getElementById('monthSelectionGrid').style.display = showGrid ? 'block' : 'none';
+        if(showGrid) {
+            const selected = id ? (loadData().recurringItems.find(i=>i.id===id)?.activeMonths||[]) : [];
+            renderMonthGrid(selected, type==='expense');
+        }
     });
     ov.classList.add('active'); setTimeout(()=>document.getElementById('itemDescription').focus(),100);
 }
@@ -297,49 +337,45 @@ function saveItem(e){
     if(!desc)return showToast('Informe a descrição!','error'); if(!amt||amt<=0)return showToast('Valor inválido!','error');
     const d=loadData();
     let activeMonths = [];
-    if(type==='expense' && document.querySelector('input[name="occurrenceType"]:checked').value === 'recurring'){
+    const occurrence = document.querySelector('input[name="occurrenceType"]:checked')?.value;
+    if(occurrence === 'recurring'){
         document.querySelectorAll('#monthsCheckGrid input:checked').forEach(cb => activeMonths.push(cb.value));
         if (activeMonths.length === 0) {
-            showToast('Selecione pelo menos um mês para a despesa recorrente!', 'error');
+            showToast('Selecione pelo menos um mês!', 'error');
             return;
         }
+    } else {
+        activeMonths = [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)];
     }
-    if(activeMonths.length === 0 && type==='expense') activeMonths = [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)];
     
-    const newItem={id:editId||generateId(),description:desc,amount:amt,dueDate:due,category:cat,type,activeMonths};
+    let frequency = 'monthly';
+    if(type === 'income') {
+        const freqRadio = document.querySelector('input[name="frequency"]:checked');
+        if(freqRadio) frequency = freqRadio.value;
+    }
+    
+    const newItem={id:editId||generateId(),description:desc,amount:amt,dueDate:due,category:cat,type,activeMonths,frequency: type==='income' ? frequency : undefined};
     if(editId){
         const existingIdx = d.recurringItems.findIndex(i => i.id === editId);
         const isRecurringBase = (existingIdx !== -1);
-        if(type==='expense' && document.querySelector('input[name="occurrenceType"]:checked').value === 'recurring') {
-            newItem.activeMonths = activeMonths;
-            if(isRecurringBase) {
-                d.recurringItems[existingIdx] = newItem;
-            } else {
-                d.recurringItems.push(newItem);
-                const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-                if(d.monthOverrides[key]?.added) d.monthOverrides[key].added = d.monthOverrides[key].added.filter(i => i.id !== editId);
-                if(d.monthOverrides[key]?.modified) delete d.monthOverrides[key].modified[editId];
-            }
+        if(isRecurringBase) {
+            d.recurringItems[existingIdx] = newItem;
         } else {
-            if(isRecurringBase) {
-                d.recurringItems.splice(existingIdx, 1);
-                const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-                if(!d.monthOverrides[key]) d.monthOverrides[key] = { added: [], removed: [], modified: {}, notes: [] };
-                d.monthOverrides[key].added.push(newItem);
+            const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
+            if(d.monthOverrides[key]) {
+                const idx = d.monthOverrides[key].added.findIndex(i => i.id === editId);
+                if(idx !== -1) d.monthOverrides[key].added[idx] = newItem;
+                else d.monthOverrides[key].modified[editId] = newItem;
             } else {
-                const key = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
-                if(d.monthOverrides[key]) {
-                    const idx = d.monthOverrides[key].added.findIndex(i => i.id === editId);
-                    if(idx !== -1) d.monthOverrides[key].added[idx] = newItem;
-                    else d.monthOverrides[key].modified[editId] = newItem;
-                }
+                if(!d.monthOverrides[key]) d.monthOverrides[key]={added:[],removed:[],modified:{},notes:[]};
+                d.monthOverrides[key].added.push(newItem);
             }
         }
         showToast('Item atualizado! 🔄');
     } else {
-        if(type==='expense' && activeMonths.length > 1){
+        if(activeMonths.length > 1){
             d.recurringItems.push(newItem);
-            showToast('Despesa recorrente criada! 🔄');
+            showToast(type==='income'?'Receita recorrente criada! 🔄':'Despesa recorrente criada! 🔄');
         } else {
             const k=getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear);
             if(!d.monthOverrides[k]) d.monthOverrides[k]={added:[],removed:[],modified:{},notes:[]};
@@ -353,7 +389,7 @@ function saveItem(e){
 function deleteItem(type, id){if(!confirm('Excluir este item?'))return;const d=loadData(),isRec=d.recurringItems.some(i=>i.id===id),s=prompt('Excluir APENAS deste mês (1) ou TODOS (2)?');if(s!=='2'&&s!=='1')return;if(isRec&&s==='2'){d.recurringItems=d.recurringItems.filter(i=>i.id!==id);Object.keys(d.monthOverrides).forEach(k=>{const ov=d.monthOverrides[k];ov.removed=ov.removed.filter(r=>r!==id);delete ov.modified[id];});showToast('Excluído permanentemente! 🗑️');}else{const k=getMonthKey(APP_STATE.currentMonth,APP_STATE.currentYear);if(!d.monthOverrides[k])d.monthOverrides[k]={added:[],removed:[],modified:{},notes:[]};if(isRec)d.monthOverrides[k].removed.push(id);else d.monthOverrides[k].added=d.monthOverrides[k].added.filter(i=>i.id!==id);showToast('Removido deste mês! 📅');}saveData(d);renderAll();}
 function editItem(type, id){openModal(type, id);}
 
-// ─── EXCEL (corrigido) ────────────────────
+// ─── EXCEL ────────────────────────────────
 function downloadExcelTemplate() {
     const wb = XLSX.utils.book_new();
     const data = [{
@@ -362,17 +398,26 @@ function downloadExcelTemplate() {
         Categoria: 'moradia',
         Valor: 1200,
         Meses_Ativos: '2025-01,2025-02,2025-03',
-        Dia_Vencimento: 10
+        Dia_Vencimento: 10,
+        Frequencia: 'mensal'
     }];
     const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [{wch:15},{wch:30},{wch:15},{wch:10},{wch:30},{wch:10}];
+    ws['!cols'] = [{wch:15},{wch:30},{wch:15},{wch:10},{wch:30},{wch:10},{wch:12}];
     XLSX.utils.book_append_sheet(wb, ws, "Modelo");
     XLSX.writeFile(wb, "Modelo_Importacao_Orcamento.xlsx");
     showToast('Modelo baixado! Preencha e importe. 📥');
 }
 function exportExcel() {
     const d=loadData(), rows=[];
-    d.recurringItems.forEach(i=>rows.push({'Tipo':i.type==='income'?'Receita':'Despesa','Descrição':i.description,'Categoria':i.category||'-','Valor':i.amount,'Meses_Ativos':(i.activeMonths||[]).join(','),'Dia_Vencimento':i.dueDate||'-'}));
+    d.recurringItems.forEach(i=>rows.push({
+        'Tipo':i.type==='income'?'Receita':'Despesa',
+        'Descrição':i.description,
+        'Categoria':i.category||'-',
+        'Valor':i.amount,
+        'Meses_Ativos':(i.activeMonths||[]).join(','),
+        'Dia_Vencimento':i.dueDate||'-',
+        'Frequencia':i.frequency || 'mensal'
+    }));
     const ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,"Orçamento"); XLSX.writeFile(wb,`Orcamento_${new Date().toISOString().slice(0,10)}.xlsx`);
     showToast('Planilha exportada! 📊');
@@ -397,6 +442,7 @@ function importExcel(file){
                 if (activeMonths.length === 0) {
                     activeMonths = [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)];
                 }
+                const frequency = (type === 'income' && row.Frequencia) ? row.Frequencia : 'monthly';
                 const item = {
                     id: generateId(),
                     description: row.Descrição || 'Importado',
@@ -404,7 +450,8 @@ function importExcel(file){
                     category: row.Categoria || 'outros',
                     dueDate: (row.Dia_Vencimento && !isNaN(row.Dia_Vencimento)) ? parseInt(row.Dia_Vencimento) : null,
                     type: type,
-                    activeMonths: activeMonths
+                    activeMonths: activeMonths,
+                    frequency: frequency
                 };
                 data.recurringItems.push(item);
             }
