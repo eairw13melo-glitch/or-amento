@@ -274,3 +274,31 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     background-color: #b91c1c;
     transform: translateY(-1px);
 }
+.comparison-table-wrapper {
+    overflow-x: auto;
+}
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.comparison-table th, .comparison-table td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+.comparison-table th {
+    background: var(--bg-input);
+    font-weight: 600;
+}
+.trend-up {
+    color: var(--income-color);
+    font-weight: bold;
+}
+.trend-down {
+    color: var(--expense-color);
+    font-weight: bold;
+}
+.trend-equal {
+    color: var(--text-muted);
+}
