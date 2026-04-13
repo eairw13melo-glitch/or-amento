@@ -134,11 +134,22 @@
 
         <section class="section">
             <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense" aria-label="Adicionar nova despesa">➕ Adicionar</button></div>
-            <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa..." aria-label="Filtrar despesas por descrição ou categoria">
-            <div class="filter-bar" id="filterBar" role="tablist" aria-label="Filtro por categoria"></div>
-            <div class="goals-grid" id="goalsGrid" aria-label="Metas de gastos por categoria"></div>
+            <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa...">
+            <div class="filter-bar" id="filterBar"></div>
+            <div class="goals-grid" id="goalsGrid"></div>
             <div class="items-list" id="expenseList"></div>
             <div class="empty-state" id="expenseEmpty"><p>Nenhuma despesa adicionada</p></div>
+            
+            <!-- Rodapé com seleção múltipla -->
+            <div class="expense-footer">
+                <div class="selection-controls">
+                    <button id="btnSelectAll" class="btn btn-secondary btn-sm">✅ Selecionar todas</button>
+                    <button id="btnClearSelection" class="btn btn-secondary btn-sm">❌ Limpar seleção</button>
+                </div>
+                <div class="selected-total">
+                    💰 <strong>Total selecionado:</strong> <span id="selectedTotal">R$ 0,00</span>
+                </div>
+            </div>
         </section>
 
         <section class="section chart-section">
@@ -154,8 +165,8 @@
         <section class="section">
             <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
             <div class="notes-input-area">
-                <input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200" aria-label="Nova anotação">
-                <button class="btn btn-primary" id="btnAddNote" aria-label="Adicionar anotação">Adicionar</button>
+                <input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março, Bico freelance..." maxlength="200">
+                <button class="btn btn-primary" id="btnAddNote">Adicionar</button>
             </div>
             <div class="notes-list" id="notesList"></div>
             <div class="empty-state" id="notesEmpty"><p>Nenhuma anotação para este mês</p></div>
@@ -163,7 +174,7 @@
 
         <section class="section">
             <div class="section-header"><h3>📅 Histórico Mensal</h3></div>
-            <div class="history-table-wrapper" role="region" aria-label="Tabela de histórico financeiro mensal">
+            <div class="history-table-wrapper">
                 <table class="history-table" id="historyTable">
                     <thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
                     <tbody id="historyBody"></tbody>
@@ -173,46 +184,34 @@
         </section>
     </main>
 
-    <!-- Modal principal (adicionar/editar itens) -->
-    <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <!-- Modal principal -->
+    <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header">
                 <h3 id="modalTitle">Adicionar Item</h3>
-                <button class="btn btn-close" id="btnCloseModal" aria-label="Fechar">✖</button>
+                <button class="btn btn-close" id="btnCloseModal">✖</button>
             </div>
             <form id="itemForm">
                 <input type="hidden" id="itemId">
                 <input type="hidden" id="itemType">
-                
                 <div class="form-group" style="position:relative;">
                     <label for="itemDescription">Descrição</label>
-                    <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required autocomplete="off" aria-describedby="smartSuggestion">
-                    <div class="smart-suggestion" id="smartSuggestion" role="listbox"></div>
+                    <input type="text" id="itemDescription" placeholder="Ex: Salário, Aluguel..." required autocomplete="off">
+                    <div class="smart-suggestion" id="smartSuggestion"></div>
                 </div>
-                
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="itemAmount">Valor (R$)</label>
-                        <input type="text" id="itemAmount" placeholder="0,00" required aria-label="Valor em reais">
-                    </div>
-                    <div class="form-group">
-                        <label for="itemDueDate">Data de Vencimento</label>
-                        <input type="date" id="itemDueDate" aria-label="Data de vencimento">
-                    </div>
+                    <div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div>
+                    <div class="form-group"><label for="itemDueDate">Data de Vencimento</label><input type="date" id="itemDueDate"></div>
                 </div>
-
-                <!-- Grupo de frequência para Receitas -->
                 <div class="form-group" id="frequencyGroup" style="display:none;">
                     <label>🕒 Frequência da Receita</label>
-                    <div class="toggle-group" role="radiogroup" aria-label="Frequência da receita">
+                    <div class="toggle-group">
                         <label class="toggle-option"><input type="radio" name="frequency" value="monthly" checked> 📅 Mensal</label>
                         <label class="toggle-option"><input type="radio" name="frequency" value="weekly"> 📆 Semanal</label>
                         <label class="toggle-option"><input type="radio" name="frequency" value="daily"> ⏱️ Diária</label>
                     </div>
-                    <small class="help-text">O valor informado será multiplicado conforme a frequência para obter o total do mês.</small>
+                    <small>O valor informado será multiplicado conforme a frequência para obter o total do mês.</small>
                 </div>
-
-                <!-- Grupo de categoria (apenas despesas) -->
                 <div class="form-group" id="categoryGroup" style="display:none;">
                     <label for="itemCategory">Categoria</label>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -229,27 +228,22 @@
                         <button type="button" id="btnManageCategories" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem;" title="Gerenciar categorias">⚙️</button>
                     </div>
                 </div>
-
-                <!-- Grupo de ocorrência (despesas e receitas) -->
                 <div class="form-group" id="occurrenceGroup">
                     <label>📅 Periodicidade</label>
-                    <div class="toggle-group" role="radiogroup" aria-label="Tipo de ocorrência">
+                    <div class="toggle-group">
                         <label class="toggle-option"><input type="radio" name="occurrenceType" value="single" checked> 📌 Único (este mês)</label>
                         <label class="toggle-option"><input type="radio" name="occurrenceType" value="recurring"> 🔄 Recorrente</label>
                     </div>
                     <div id="monthSelectionGrid" style="display:none; margin-top:0.75rem; padding:0.75rem; background:var(--bg-input); border-radius:var(--radius-sm);">
                         <small>Marque os meses em que o item deve aparecer:</small>
-                        <div class="months-check-grid" id="monthsCheckGrid" role="group" aria-label="Seleção de meses"></div>
+                        <div class="months-check-grid" id="monthsCheckGrid"></div>
                     </div>
                 </div>
-
-                <!-- Opção de parcelamento para despesas recorrentes -->
                 <div class="form-group" id="installmentGroup" style="display:none;">
                     <label for="installments">Número de parcelas (opcional)</label>
                     <input type="number" id="installments" min="2" max="60" placeholder="Ex: 12">
                     <small>Deixe em branco se for contínuo.</small>
                 </div>
-
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button>
@@ -258,24 +252,24 @@
         </div>
     </div>
 
-    <!-- Modal para gerenciar categorias personalizadas -->
-    <div class="modal-overlay" id="modalCategoriesOverlay" role="dialog" aria-modal="true">
+    <!-- Modal de gerenciar categorias -->
+    <div class="modal-overlay" id="modalCategoriesOverlay">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
                 <h3>Gerenciar Categorias</h3>
-                <button class="btn btn-close" id="btnCloseCatModal" aria-label="Fechar">✖</button>
+                <button class="btn btn-close" id="btnCloseCatModal">✖</button>
             </div>
             <div class="modal-body" style="padding: 1.5rem;">
                 <div id="categoriesList"></div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;" aria-label="Nome da nova categoria">
+                    <input type="text" id="newCategoryName" placeholder="Nova categoria" style="flex:1;">
                     <button id="btnAddCategory" class="btn btn-primary">Adicionar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+    <div class="toast-container" id="toastContainer"></div>
     <footer class="footer">
         <p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p>
     </footer>
