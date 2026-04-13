@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.5 (com reset seguro)
+   ORÇAMENTO FAMILIAR - V9.6 (com comparação de categorias)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -335,7 +335,7 @@ async function logout() {
     setTimeout(() => location.reload(), 800); 
 }
 
-// --- RESET SEGURO (nova função) ---
+// --- RESET SEGURO ---
 async function resetAllData() {
     const password = prompt('⚠️ ATENÇÃO! Isso irá APAGAR TODOS OS DADOS (receitas, despesas, metas, categorias, senha de acesso).\nDigite a senha de reset para confirmar:');
     if (password !== 'rw13melo') {
@@ -572,6 +572,78 @@ function renderCategoryGoals(expenses) {
         };
         g.appendChild(d);
     });
+}
+
+// --- COMPARAÇÃO DE CATEGORIAS (nova funcionalidade) ---
+function renderCategoryComparison() {
+    // Dados do mês atual
+    const currentData = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    // Mês anterior
+    let prevMonth = APP_STATE.currentMonth - 1;
+    let prevYear = APP_STATE.currentYear;
+    if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear--;
+    }
+    const prevData = getMonthData(prevMonth, prevYear);
+    
+    // Agrupar despesas por categoria
+    const currentTotals = {};
+    currentData.expenses.forEach(exp => {
+        const cat = exp.category || 'outros';
+        const val = normalizeValue(exp, APP_STATE.currentMonth, APP_STATE.currentYear);
+        currentTotals[cat] = (currentTotals[cat] || 0) + val;
+    });
+    
+    const prevTotals = {};
+    prevData.expenses.forEach(exp => {
+        const cat = exp.category || 'outros';
+        const val = normalizeValue(exp, prevMonth, prevYear);
+        prevTotals[cat] = (prevTotals[cat] || 0) + val;
+    });
+    
+    // Todas as categorias (união + personalizadas + padrão)
+    const allCategories = new Set([...Object.keys(currentTotals), ...Object.keys(prevTotals), ...customCategories.map(c => c.id), ...Object.keys(CATEGORY_LABELS)]);
+    const categoriesList = Array.from(allCategories).sort();
+    
+    const tbody = document.getElementById('comparisonBody');
+    const emptyDiv = document.getElementById('comparisonEmpty');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    let hasAnyData = false;
+    
+    categoriesList.forEach(cat => {
+        const currentVal = currentTotals[cat] || 0;
+        const prevVal = prevTotals[cat] || 0;
+        if (currentVal === 0 && prevVal === 0) return; // não mostrar categorias zeradas nos dois meses
+        
+        hasAnyData = true;
+        const diff = currentVal - prevVal;
+        const diffPercent = prevVal !== 0 ? (diff / prevVal) * 100 : (currentVal !== 0 ? 100 : 0);
+        const trend = diff > 0 ? '↑' : (diff < 0 ? '↓' : '→');
+        const trendClass = diff > 0 ? 'trend-up' : (diff < 0 ? 'trend-down' : 'trend-equal');
+        const categoryLabel = CATEGORY_LABELS[cat] || customCategories.find(c => c.id === cat)?.name || cat;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${categoryLabel}</strong></td>
+            <td>${formatCurrency(currentVal)}</td>
+            <td>${formatCurrency(prevVal)}</td>
+            <td class="${trendClass}">${diff > 0 ? '+' : ''}${formatCurrency(diff)}</td>
+            <td class="${trendClass}">${diffPercent !== 0 ? (diffPercent > 0 ? '+' : '') + diffPercent.toFixed(1) + '%' : '0%'}</td>
+            <td class="${trendClass}" style="font-size:1.2rem;">${trend}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    if (!hasAnyData) {
+        emptyDiv.style.display = 'block';
+        if (tbody.parentElement) tbody.parentElement.style.display = 'none';
+    } else {
+        emptyDiv.style.display = 'none';
+        if (tbody.parentElement) tbody.parentElement.style.display = '';
+    }
 }
 
 // --- Atualização do total selecionado ---
@@ -1329,7 +1401,7 @@ function renderFilterBar() {
     });
 }
 
-// --- Render All ---
+// --- Render All (atualizado para incluir comparação) ---
 function renderAll() {
     updateMonthDisplay();
     updateSummary();
@@ -1341,6 +1413,7 @@ function renderAll() {
     renderCalendar();
     renderNotes();
     renderFilterBar();
+    renderCategoryComparison(); // NOVA CHAMADA
     checkDueAlerts();
     updateSelectedTotal();
 }
