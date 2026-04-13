@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.1 (Correção total)
+   ORÇAMENTO FAMILIAR - V9.2 (Com seleção de despesas)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -31,6 +31,9 @@ let deferredPrompt = null;
 // --- Categorias personalizadas ---
 let customCategories = [];
 
+// --- Seleção de despesas ---
+let selectedExpenseIds = new Set();
+
 function loadCustomCategories() {
     const saved = localStorage.getItem('customCategories');
     customCategories = saved ? JSON.parse(saved) : [];
@@ -41,7 +44,7 @@ function saveCustomCategories() {
     renderCategorySelect();
     renderFilterBar();
     renderChart();
-    renderAll(); // força atualização completa
+    renderAll();
 }
 
 function renderCategorySelect() {
@@ -72,7 +75,6 @@ function openCategoriesModal() {
         `;
         listDiv.appendChild(div);
     });
-    // Eventos dos botões
     document.querySelectorAll('.btn-edit-cat').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const idx = parseInt(btn.dataset.idx);
@@ -80,7 +82,7 @@ function openCategoriesModal() {
             if (newName && newName.trim() && !customCategories.some(c => c.name === newName.trim())) {
                 customCategories[idx].name = newName.trim();
                 saveCustomCategories();
-                openCategoriesModal(); // recarrega
+                openCategoriesModal();
             } else if (newName && customCategories.some(c => c.name === newName.trim())) {
                 showToast('Já existe uma categoria com esse nome!', 'error');
             }
@@ -469,7 +471,6 @@ function renderCategoryGoals(expenses) {
         totals[cat] = (totals[cat] || 0) + normalizeValue(i, APP_STATE.currentMonth, APP_STATE.currentYear);
     });
     
-    // Categorias padrão + personalizadas
     const allCategoryKeys = [...Object.keys(CATEGORY_LABELS), ...customCategories.map(c => c.id)];
     allCategoryKeys.forEach(c => {
         const t = totals[c] || 0;
@@ -508,20 +509,42 @@ function renderCategoryGoals(expenses) {
     });
 }
 
+// --- Atualização do total selecionado ---
+function updateSelectedTotal() {
+    const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    let visibleExpenses = [...expenses];
+    if (APP_STATE.currentFilter !== 'all') {
+        visibleExpenses = visibleExpenses.filter(e => e.category === APP_STATE.currentFilter);
+    }
+    const searchTerm = document.getElementById('searchExpenses')?.value.toLowerCase() || '';
+    if (searchTerm) {
+        visibleExpenses = visibleExpenses.filter(e => e.description.toLowerCase().includes(searchTerm) || (e.category || '').includes(searchTerm));
+    }
+    let total = 0;
+    visibleExpenses.forEach(exp => {
+        if (selectedExpenseIds.has(exp.id)) {
+            total += normalizeValue(exp, APP_STATE.currentMonth, APP_STATE.currentYear);
+        }
+    });
+    const totalSpan = document.getElementById('selectedTotal');
+    if (totalSpan) totalSpan.textContent = formatCurrency(total);
+}
+
+// --- Renderização de itens com checkbox para despesas ---
 function renderItems(type) {
-    const {income, expenses} = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
-    const listId = type==='income' ? 'incomeList' : 'expenseList';
-    const emptyId = type==='income' ? 'incomeEmpty' : 'expenseEmpty';
+    const { income, expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    const listId = type === 'income' ? 'incomeList' : 'expenseList';
+    const emptyId = type === 'income' ? 'incomeEmpty' : 'expenseEmpty';
     const listEl = document.getElementById(listId);
     const emptyEl = document.getElementById(emptyId);
     if (!listEl || !emptyEl) return;
     
-    let items = type==='income' ? income : expenses;
-    if(type === 'expense') {
-        if(APP_STATE.currentFilter !== 'all') items = items.filter(i => i.category === APP_STATE.currentFilter);
+    let items = type === 'income' ? income : expenses;
+    if (type === 'expense') {
+        if (APP_STATE.currentFilter !== 'all') items = items.filter(i => i.category === APP_STATE.currentFilter);
         const s = document.getElementById('searchExpenses')?.value.toLowerCase() || '';
-        if(s) items = items.filter(i => i.description.toLowerCase().includes(s) || (i.category||'').includes(s));
-        items.sort((a,b) => { 
+        if (s) items = items.filter(i => i.description.toLowerCase().includes(s) || (i.category || '').includes(s));
+        items.sort((a, b) => {
             const da = a.dueDate ? new Date(a.dueDate).getTime() : 9999999999999;
             const db = b.dueDate ? new Date(b.dueDate).getTime() : 9999999999999;
             return da - db;
@@ -529,8 +552,9 @@ function renderItems(type) {
     }
     
     listEl.innerHTML = '';
-    if(items.length === 0) {
+    if (items.length === 0) {
         emptyEl.style.display = 'block';
+        if (type === 'expense') updateSelectedTotal();
         return;
     }
     emptyEl.style.display = 'none';
@@ -539,12 +563,13 @@ function renderItems(type) {
         const card = document.createElement('div');
         card.className = 'item-card';
         const val = normalizeValue(item, APP_STATE.currentMonth, APP_STATE.currentYear);
-        const cls = type==='income' ? 'income' : 'expense';
-        const sign = type==='income' ? '+' : '-';
+        const cls = type === 'income' ? 'income' : 'expense';
+        const sign = type === 'income' ? '+' : '-';
         const lbl = getDurationLabel(item.activeMonths || []);
         const bCls = lbl.includes('Único') ? 'badge-single' : (lbl.includes('Longo') ? 'badge-recurring' : 'badge-limited');
+        
         let categoryLabel = '';
-        if (type==='expense' && item.category) {
+        if (type === 'expense' && item.category) {
             categoryLabel = CATEGORY_LABELS[item.category] || customCategories.find(c => c.id === item.category)?.name || item.category;
             categoryLabel = `<span class="item-category">${categoryLabel}</span>`;
         }
@@ -553,21 +578,62 @@ function renderItems(type) {
         if (type === 'income' && item.frequency && item.frequency !== 'monthly') {
             freqBadge = `<span class="badge badge-frequency">${getFrequencyLabel(item.frequency)}</span>`;
         }
+        
+        let checkboxHtml = '';
+        if (type === 'expense') {
+            checkboxHtml = `<input type="checkbox" class="expense-checkbox" data-id="${item.id}" ${selectedExpenseIds.has(item.id) ? 'checked' : ''} style="margin-right: 12px;">`;
+        }
+        
         card.innerHTML = `
-            <div class="item-info">
-                <div class="item-description">${escapeHtml(item.description)}<span class="badge ${bCls}">${lbl}</span>${freqBadge}</div>
-                <div class="item-meta">${categoryLabel}${due}</div>
+            <div style="display: flex; align-items: center; flex: 1;">
+                ${checkboxHtml}
+                <div class="item-info">
+                    <div class="item-description">${escapeHtml(item.description)}<span class="badge ${bCls}">${lbl}</span>${freqBadge}</div>
+                    <div class="item-meta">${categoryLabel}${due}</div>
+                </div>
             </div>
             <div class="item-value ${cls}">${sign} ${formatCurrency(val)}</div>
             <div class="item-actions">
-                <button class="btn btn-edit" onclick="editItem('${type}','${item.id}')" aria-label="Editar ${escapeHtml(item.description)}">✏️</button>
-                <button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')" aria-label="Excluir ${escapeHtml(item.description)}">🗑️</button>
+                <button class="btn btn-edit" onclick="editItem('${type}','${item.id}')">✏️</button>
+                <button class="btn btn-delete" onclick="deleteItem('${type}','${item.id}')">🗑️</button>
             </div>
         `;
         listEl.appendChild(card);
     });
+    
+    if (type === 'expense') {
+        document.querySelectorAll('.expense-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const id = cb.dataset.id;
+                if (cb.checked) selectedExpenseIds.add(id);
+                else selectedExpenseIds.delete(id);
+                updateSelectedTotal();
+            });
+        });
+        updateSelectedTotal();
+    }
 }
 
+function selectAllExpenses() {
+    const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
+    let visibleExpenses = [...expenses];
+    if (APP_STATE.currentFilter !== 'all') {
+        visibleExpenses = visibleExpenses.filter(e => e.category === APP_STATE.currentFilter);
+    }
+    const searchTerm = document.getElementById('searchExpenses')?.value.toLowerCase() || '';
+    if (searchTerm) {
+        visibleExpenses = visibleExpenses.filter(e => e.description.toLowerCase().includes(searchTerm) || (e.category || '').includes(searchTerm));
+    }
+    visibleExpenses.forEach(e => selectedExpenseIds.add(e.id));
+    renderItems('expense');
+}
+
+function clearSelection() {
+    selectedExpenseIds.clear();
+    renderItems('expense');
+}
+
+// --- Gráficos e histórico (idênticos à versão anterior) ---
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
@@ -577,9 +643,7 @@ function renderChart() {
     });
     const ctx = document.getElementById('categoryChart').getContext('2d');
     if (categoryChart) categoryChart.destroy();
-    const labels = Object.keys(totals).map(c => {
-        return CATEGORY_LABELS[c] || customCategories.find(cat => cat.id === c)?.name || c;
-    });
+    const labels = Object.keys(totals).map(c => CATEGORY_LABELS[c] || customCategories.find(cat => cat.id === c)?.name || c);
     const data = Object.values(totals);
     const backgroundColors = Object.keys(totals).map(c => CATEGORY_COLORS[c] || '#636e72');
     categoryChart = new Chart(ctx, {
@@ -699,6 +763,7 @@ function checkDueAlerts() {
     }
 }
 
+// --- PDF ---
 async function exportAdvancedPDF() {
     showToast('Gerando PDF avançado...', 'success');
     const pdfContent = document.createElement('div');
@@ -846,7 +911,7 @@ function setupSmartSuggestions() {
     });
 }
 
-// --- Modal principal ---
+// --- Modal principal e CRUD ---
 function renderMonthGrid(selected = [], includeCurrent = false) {
     const grid = document.getElementById('monthsCheckGrid'); 
     if (!grid) return;
@@ -881,7 +946,7 @@ function openModal(type, id=null) {
         freqGrp.style.display = 'none';
         installmentGrp.style.display = 'block';
         title.textContent = id ? 'Editar Despesa' : 'Adicionar Despesa';
-        renderCategorySelect(); // garante que o select está atualizado
+        renderCategorySelect();
     } else {
         catGrp.style.display = 'none';
         occGrp.style.display = 'block';
@@ -1170,7 +1235,7 @@ function importExcel(file) {
     reader.readAsBinaryString(file);
 }
 
-// --- Filter Bar ---
+// --- Filter Bar (com categorias personalizadas) ---
 function renderFilterBar() {
     const filterBar = document.getElementById('filterBar');
     if (!filterBar) return;
@@ -1193,6 +1258,7 @@ function renderFilterBar() {
             btn.setAttribute('aria-selected', 'true');
             APP_STATE.currentFilter = f;
             renderItems('expense');
+            updateSelectedTotal();
         };
         filterBar.appendChild(btn);
     });
@@ -1211,6 +1277,7 @@ function renderAll() {
     renderNotes();
     renderFilterBar();
     checkDueAlerts();
+    updateSelectedTotal();
 }
 
 // --- Init App ---
@@ -1244,7 +1311,7 @@ function initApp() {
     document.getElementById('btnCancelModal').onclick = closeModal;
     document.getElementById('modalOverlay').onclick = e => { if(e.target === e.currentTarget) closeModal(); };
     document.getElementById('itemForm').onsubmit = saveItem;
-    document.getElementById('searchExpenses').oninput = () => renderItems('expense');
+    document.getElementById('searchExpenses').oninput = () => { renderItems('expense'); updateSelectedTotal(); };
     document.getElementById('savingsGoal').oninput = () => updateSummary();
     document.getElementById('savingsGoal').value = localStorage.getItem('savingsGoal') || '500,00';
     document.getElementById('savingsGoal').onblur = e => { 
@@ -1295,6 +1362,10 @@ function initApp() {
     document.getElementById('btnAddNote').onclick = () => addNote(document.getElementById('noteInput').value);
     document.getElementById('noteInput').onkeydown = e => { if(e.key === 'Enter') { e.preventDefault(); addNote(document.getElementById('noteInput').value); } };
     
+    // Botões de seleção
+    document.getElementById('btnSelectAll').onclick = selectAllExpenses;
+    document.getElementById('btnClearSelection').onclick = clearSelection;
+    
     // Gerenciar categorias
     document.getElementById('btnManageCategories')?.addEventListener('click', openCategoriesModal);
     document.getElementById('btnCloseCatModal')?.addEventListener('click', closeCategoriesModal);
@@ -1304,7 +1375,7 @@ function initApp() {
             customCategories.push({ id: 'cat_' + Date.now(), name });
             saveCustomCategories();
             document.getElementById('newCategoryName').value = '';
-            openCategoriesModal(); // recarrega
+            openCategoriesModal();
         } else if (name && customCategories.some(c => c.name === name)) {
             showToast('Categoria já existe!', 'error');
         }
