@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Google Drive API (para backup) -->
+    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
     <!-- 🔐 Login -->
@@ -47,6 +49,9 @@
                 <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
                 <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
                 <input type="file" id="fileImport" accept=".json" hidden>
+                <!-- Backup na nuvem -->
+                <button id="btnGoogleBackup" class="btn btn-secondary">☁️ Backup Drive</button>
+                <button id="btnGoogleRestore" class="btn btn-secondary">☁️ Restaurar Drive</button>
                 <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
             </div>
         </div>
@@ -79,6 +84,17 @@
             <div class="card card-savings"><div class="card-header"><span>🎯 Meta Economizada</span></div><p class="card-value" id="totalSavings">R$ 0,00</p><div class="savings-target"><small>Meta:</small><input type="text" id="savingsGoal" class="savings-goal-input" value="500,00"></div><div class="savings-bar"><div class="savings-fill" id="savingsFill"></div></div><span class="savings-percent" id="savingsPercent">0%</span></div>
         </section>
 
+        <!-- GRÁFICO DE EVOLUÇÃO DO SALDO -->
+        <section class="section">
+            <div class="section-header"><h3>📈 Evolução do Saldo (últimos meses)</h3>
+                <div class="trend-selector">
+                    <button id="btnTrend6" class="btn btn-sm btn-secondary active">6 meses</button>
+                    <button id="btnTrend12" class="btn btn-sm btn-secondary">12 meses</button>
+                </div>
+            </div>
+            <div class="chart-container"><canvas id="trendChart"></canvas></div>
+        </section>
+
         <section class="section">
             <div class="section-header"><h3>💰 Receitas</h3><button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button></div>
             <div class="items-list" id="incomeList"></div>
@@ -86,7 +102,13 @@
         </section>
 
         <section class="section">
-            <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button></div>
+            <div class="section-header">
+                <h3>📋 Despesas</h3>
+                <div>
+                    <button id="btnManageCategories" class="btn btn-secondary">🏷️ Gerenciar Categorias</button>
+                    <button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button>
+                </div>
+            </div>
             <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa...">
             <div class="filter-bar" id="filterBar"></div>
             <div class="goals-grid" id="goalsGrid"></div>
@@ -113,7 +135,7 @@
         </section>
     </main>
 
-    <!-- Modal -->
+    <!-- Modal para itens (receita/despesa) -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header"><h3 id="modalTitle">Adicionar Item</h3><button class="btn btn-close" id="btnCloseModal">✖</button></div>
@@ -128,8 +150,10 @@
                     <div class="form-group"><label for="itemAmount">Valor (R$)</label><input type="text" id="itemAmount" placeholder="0,00" required></div>
                     <div class="form-group"><label for="itemDueDate">Dia de Vencimento</label><input type="number" id="itemDueDate" min="1" max="31" placeholder="Dia"></div>
                 </div>
-                <div class="form-group" id="categoryGroup" style="display:none;"><label for="itemCategory">Categoria</label><select id="itemCategory"><option value="moradia">🏠 Moradia</option><option value="alimentacao">🍔 Alimentação</option><option value="transporte">🚗 Transporte</option><option value="saude">💊 Saúde</option><option value="educacao">📚 Educação</option><option value="lazer">🎮 Lazer</option><option value="vestuario">👕 Vestuário</option><option value="outros">📦 Outros</option></select></div>
-                
+                <div class="form-group" id="categoryGroup" style="display:none;">
+                    <label for="itemCategory">Categoria</label>
+                    <select id="itemCategory"></select> <!-- preenchido dinamicamente -->
+                </div>
                 <div class="form-group" id="occurrenceGroup" style="display:none;">
                     <label>📅 Periodicidade da Despesa</label>
                     <div class="toggle-group">
@@ -141,9 +165,24 @@
                         <div class="months-check-grid" id="monthsCheckGrid"></div>
                     </div>
                 </div>
-
                 <div class="form-actions"><button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button><button type="submit" class="btn btn-primary" id="btnSaveItem">Salvar</button></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal para gerenciar categorias -->
+    <div class="modal-overlay" id="categoryModalOverlay">
+        <div class="modal modal-wide">
+            <div class="modal-header"><h3>🏷️ Gerenciar Categorias</h3><button class="btn btn-close" id="btnCloseCategoryModal">✖</button></div>
+            <div class="modal-body">
+                <div id="categoriesList" class="categories-list"></div>
+                <div class="category-add">
+                    <input type="text" id="newCategoryName" placeholder="Nova categoria" maxlength="20">
+                    <input type="color" id="newCategoryColor" value="#6c5ce7">
+                    <button id="btnAddCategory" class="btn btn-primary">➕ Adicionar</button>
+                </div>
+                <div class="form-actions"><button class="btn btn-secondary" id="btnCloseCategoryModalFooter">Fechar</button></div>
+            </div>
         </div>
     </div>
 
