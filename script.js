@@ -1330,3 +1330,56 @@ if(checkAuth()) {
     };
     document.getElementById('password').focus();
 }
+
+
+// Gerenciamento de categorias personalizadas
+let customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+
+function renderCategorySelect() {
+    const select = document.getElementById('itemCategory');
+    if (!select) return;
+    const defaultCats = Object.entries(CATEGORY_LABELS).map(([val, label]) => ({ value: val, label }));
+    const allCats = [...defaultCats, ...customCategories.map(c => ({ value: c.id, label: c.name }))];
+    select.innerHTML = allCats.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+}
+
+function openCategoriesModal() {
+    const modal = document.getElementById('modalCategoriesOverlay');
+    const listDiv = document.getElementById('categoriesList');
+    listDiv.innerHTML = '';
+    customCategories.forEach((cat, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.marginBottom = '0.5rem';
+        div.innerHTML = `
+            <span>${cat.name}</span>
+            <div>
+                <button class="btn-edit-cat" data-idx="${idx}">✏️</button>
+                <button class="btn-delete-cat" data-idx="${idx}">🗑️</button>
+            </div>
+        `;
+        listDiv.appendChild(div);
+    });
+    modal.classList.add('active');
+}
+
+// Salvar categorias e atualizar tudo
+function saveCustomCategories() {
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+    renderCategorySelect();
+    renderFilterBar(); // atualiza os filtros
+    renderChart();     // atualiza o gráfico
+}
+
+// Eventos
+document.getElementById('btnManageCategories')?.addEventListener('click', openCategoriesModal);
+document.getElementById('btnAddCategory')?.addEventListener('click', () => {
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (name && !customCategories.some(c => c.name === name)) {
+        customCategories.push({ id: 'cat_' + Date.now(), name });
+        saveCustomCategories();
+        document.getElementById('newCategoryName').value = '';
+        openCategoriesModal(); // recarrega a lista
+    }
+});
