@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.7 (Categorias no backup)
+   ORÇAMENTO FAMILIAR - V9.8 (Fundo por mês)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -33,6 +33,41 @@ let customCategories = [];
 
 // --- Seleção de despesas ---
 let selectedExpenseIds = new Set();
+
+// ========== CONFIGURAÇÃO DE IMAGENS POR MÊS ==========
+// Substitua as URLs abaixo pelas suas imagens (podem ser locais ou externas)
+// Exemplo: './images/janeiro.jpg', 'https://exemplo.com/fevereiro.jpg', etc.
+const monthBackgrounds = [
+    './images/janeiro.jpg',      // 0 - Janeiro
+    './images/fevereiro.jpg',    // 1 - Fevereiro
+    './images/marco.jpg',        // 2 - Março
+    './images/abril.jpg',        // 3 - Abril
+    './images/maio.jpg',         // 4 - Maio
+    './images/junho.jpg',        // 5 - Junho
+    './images/julho.jpg',        // 6 - Julho
+    './images/agosto.jpg',       // 7 - Agosto
+    './images/setembro.jpg',     // 8 - Setembro
+    './images/outubro.jpg',      // 9 - Outubro
+    './images/novembro.jpg',     // 10 - Novembro
+    './images/dezembro.jpg'      // 11 - Dezembro
+];
+
+// Função para atualizar a imagem de fundo com base no mês atual
+function updateMonthBackground() {
+    const monthSelector = document.querySelector('.month-selector');
+    if (!monthSelector) return;
+    
+    const imageUrl = monthBackgrounds[APP_STATE.currentMonth];
+    if (imageUrl) {
+        monthSelector.style.backgroundImage = `url('${imageUrl}')`;
+        monthSelector.style.backgroundSize = 'cover';
+        monthSelector.style.backgroundPosition = 'center';
+        monthSelector.style.backgroundRepeat = 'no-repeat';
+    } else {
+        // Fallback: remove a imagem se não houver configurada
+        monthSelector.style.backgroundImage = '';
+    }
+}
 
 // ========== STORAGE CORRIGIDO (categorias dentro do objeto principal) ==========
 function loadData() {
@@ -651,7 +686,7 @@ function selectAllExpenses() {
 }
 function clearSelection() { selectedExpenseIds.clear(); renderItems('expense'); }
 
-// --- Gráficos e histórico (mantidos originais, apenas referências) ---
+// --- Gráficos e histórico ---
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
@@ -714,7 +749,7 @@ function checkDueAlerts() {
     if(upcoming.length > 0) showToast(`⚠️ ${upcoming.length} vencimento(s) nos próximos 3 dias!`, 'error');
 }
 
-// --- PDF (resumido para não estourar tamanho, mas funcional) ---
+// --- PDF ---
 async function exportAdvancedPDF() {
     showToast('Gerando PDF...', 'success');
     const pdfContent = document.createElement('div');
@@ -769,7 +804,7 @@ function setupSmartSuggestions() {
     b.addEventListener('click', e => { const it = e.target.closest('.suggestion-item'); if(!it) return; i.value = it.dataset.val; const c = SMART_DICT[it.dataset.val]; if(c) document.getElementById('itemCategory').value = c; b.classList.remove('show'); });
 }
 
-// --- Modal e CRUD (essenciais) ---
+// --- Modal e CRUD ---
 function renderMonthGrid(selected = [], includeCurrent = false) { const grid = document.getElementById('monthsCheckGrid'); if (!grid) return; grid.innerHTML = ''; const start = includeCurrent ? 0 : 1; for (let i = start; i <= 12; i++) { let m = (APP_STATE.currentMonth + i) % 12; let y = APP_STATE.currentYear + Math.floor((APP_STATE.currentMonth + i) / 12); const key = getMonthKey(m, y); const checked = selected.includes(key); const label = document.createElement('label'); label.className = 'month-check-item'; label.innerHTML = `<input type="checkbox" value="${key}" ${checked ? 'checked' : ''}> <span>${MONTHS[m].substring(0,3)}/${y.toString().slice(2)}</span>`; grid.appendChild(label); } }
 
 function openModal(type, id=null) {
@@ -803,7 +838,7 @@ function saveItem(e) {
 function deleteItem(type, id) { if(!confirm('Excluir este item?')) return; const d = loadData(); const isRec = d.recurringItems.some(i => i.id === id); const s = prompt('Excluir APENAS deste mês (1) ou TODOS (2)?'); if(s !== '2' && s !== '1') return; if(isRec && s === '2') { d.recurringItems = d.recurringItems.filter(i => i.id !== id); Object.keys(d.monthOverrides).forEach(k => { const ov = d.monthOverrides[k]; ov.removed = ov.removed.filter(r => r !== id); delete ov.modified[id]; }); showToast('Excluído permanentemente!'); } else { const k = getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear); if(!d.monthOverrides[k]) d.monthOverrides[k] = { added:[], removed:[], modified:{}, notes:[] }; if(isRec) d.monthOverrides[k].removed.push(id); else d.monthOverrides[k].added = d.monthOverrides[k].added.filter(i => i.id !== id); showToast('Removido deste mês!'); } saveData(d); renderAll(); }
 function editItem(type, id) { openModal(type, id); }
 
-// --- Excel (resumido) ---
+// --- Excel ---
 function downloadExcelTemplate() { const wb = XLSX.utils.book_new(); const data = [{ Tipo:'Despesa', Descrição:'Aluguel', Categoria:'moradia', Valor:1200, Meses_Ativos:'2025-01,2025-02,2025-03', Dia_Vencimento:'2025-01-10', Frequencia:'mensal' }]; const ws = XLSX.utils.json_to_sheet(data); ws['!cols'] = [{wch:15},{wch:30},{wch:15},{wch:10},{wch:30},{wch:15},{wch:12}]; XLSX.utils.book_append_sheet(wb, ws, "Modelo"); XLSX.writeFile(wb, "Modelo_Importacao_Orcamento.xlsx"); showToast('Modelo baixado!'); }
 function exportExcel() { const d = loadData(); const rows = []; d.recurringItems.forEach(i => { rows.push({ 'Tipo': i.type === 'income' ? 'Receita' : 'Despesa', 'Descrição': i.description, 'Categoria': i.category || '-', 'Valor': i.amount, 'Meses_Ativos': (i.activeMonths || []).join(','), 'Dia_Vencimento': i.dueDate ? new Date(i.dueDate).toISOString().split('T')[0] : '', 'Frequencia': i.frequency || 'mensal' }); }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Orçamento"); XLSX.writeFile(wb, `Orcamento_${new Date().toISOString().slice(0,10)}.xlsx`); showToast('Planilha exportada!'); }
 function importExcel(file) { const reader = new FileReader(); reader.onload = e => { try { const wb = XLSX.read(e.target.result, { type: 'binary' }); const ws = wb.Sheets[wb.SheetNames[0]]; const json = XLSX.utils.sheet_to_json(ws); const data = loadData(); for (const row of json) { const type = row.Tipo === 'Receita' ? 'income' : 'expense'; let activeMonths = []; let monthsRaw = row.Meses_Ativos || ''; if (typeof monthsRaw === 'string') activeMonths = monthsRaw.split(',').map(s => s.trim()).filter(s => /^\d{4}-\d{2}$/.test(s)); else if (Array.isArray(monthsRaw)) activeMonths = monthsRaw.filter(s => /^\d{4}-\d{2}$/.test(s)); if (activeMonths.length === 0) activeMonths = [getMonthKey(APP_STATE.currentMonth, APP_STATE.currentYear)]; const frequency = (type === 'income' && row.Frequencia) ? row.Frequencia : 'monthly'; let dueDate = null; if (row.Dia_Vencimento) { const parsed = new Date(row.Dia_Vencimento); if (!isNaN(parsed)) dueDate = parsed.toISOString(); } const item = { id: generateId(), description: row.Descrição || 'Importado', amount: parseFloat(row.Valor) || 0, category: row.Categoria || 'outros', dueDate: dueDate, type: type, activeMonths: activeMonths, frequency: frequency }; data.recurringItems.push(item); } saveData(data); renderAll(); showToast('Planilha importada!'); } catch (err) { console.error(err); showToast('Erro ao ler planilha', 'error'); } }; reader.readAsBinaryString(file); }
@@ -813,18 +848,32 @@ function renderFilterBar() {
     const filterBar = document.getElementById('filterBar'); if (!filterBar) return; filterBar.innerHTML = ''; const filters = ['all', ...Object.keys(CATEGORY_LABELS), ...customCategories.map(c => c.id)]; filters.forEach(f => { const btn = document.createElement('button'); btn.className = `filter-btn ${APP_STATE.currentFilter === f ? 'active' : ''}`; btn.textContent = f === 'all' ? '📌 Todas' : (CATEGORY_LABELS[f] || customCategories.find(c => c.id === f)?.name || f); btn.onclick = () => { document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active'); APP_STATE.currentFilter = f; renderItems('expense'); updateSelectedTotal(); }; filterBar.appendChild(btn); });
 }
 
-// --- RenderAll ---
-function renderAll() {
-    updateMonthDisplay(); updateSummary(); renderItems('income'); renderItems('expense'); renderChart(); renderEvolutionChart(); renderHistory(); renderCalendar(); renderNotes(); renderFilterBar(); renderCategoryComparison(); checkDueAlerts(); updateSelectedTotal();
-}
-
-// --- Inicialização ---
+// --- Renderização de categorias e select ---
 function renderCategorySelect() {
     const select = document.getElementById('itemCategory'); if (!select) return; const defaultCats = Object.entries(CATEGORY_LABELS).map(([val, label]) => ({ value: val, label })); const allCats = [...defaultCats, ...customCategories.map(c => ({ value: c.id, label: c.name }))]; select.innerHTML = allCats.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
 }
 function openCategoriesModal() { const modal = document.getElementById('modalCategoriesOverlay'); const listDiv = document.getElementById('categoriesList'); if (!modal || !listDiv) return; listDiv.innerHTML = ''; customCategories.forEach((cat, idx) => { const div = document.createElement('div'); div.style.display = 'flex'; div.style.justifyContent = 'space-between'; div.style.marginBottom = '0.5rem'; div.style.alignItems = 'center'; div.innerHTML = `<span>${escapeHtml(cat.name)}</span><div><button class="btn-edit-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer;">✏️</button><button class="btn-delete-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer;">🗑️</button></div>`; listDiv.appendChild(div); }); document.querySelectorAll('.btn-edit-cat').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.idx); const newName = prompt('Editar categoria:', customCategories[idx].name); if (newName && newName.trim() && !customCategories.some(c => c.name === newName.trim())) { customCategories[idx].name = newName.trim(); saveCustomCategories(); openCategoriesModal(); } else if (newName && customCategories.some(c => c.name === newName.trim())) { showToast('Categoria já existe!', 'error'); } }); }); document.querySelectorAll('.btn-delete-cat').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.idx); if (confirm(`Excluir categoria "${customCategories[idx].name}"?`)) { customCategories.splice(idx, 1); saveCustomCategories(); openCategoriesModal(); } }); }); modal.classList.add('active'); }
 function closeCategoriesModal() { document.getElementById('modalCategoriesOverlay')?.classList.remove('active'); }
 
+// --- RenderAll (chama updateMonthBackground) ---
+function renderAll() {
+    updateMonthDisplay();
+    updateSummary();
+    renderItems('income');
+    renderItems('expense');
+    renderChart();
+    renderEvolutionChart();
+    renderHistory();
+    renderCalendar();
+    renderNotes();
+    renderFilterBar();
+    renderCategoryComparison();
+    updateMonthBackground(); // <-- NOVO: atualiza a imagem de fundo do mês
+    checkDueAlerts();
+    updateSelectedTotal();
+}
+
+// --- Inicialização ---
 function initApp() {
     loadCustomCategories(); renderCategorySelect(); if(APP_STATE.isViewOnly) applyViewOnly(); renderAll(); initTheme(); setupSmartSuggestions(); initPWA(); initCalculator(); setupAmountMask();
     document.getElementById('btnThemeToggle').onclick = toggleTheme;
