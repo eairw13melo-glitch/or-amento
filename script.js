@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.2 (Com seleção de despesas)
+   ORÇAMENTO FAMILIAR - V9.3 (Correção do valor)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -194,24 +194,57 @@ function formatCurrency(v) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v); 
 }
 
+// CORREÇÃO: parseCurrency agora interpreta corretamente valores como 4200 -> 4200,00
 function parseCurrency(str) { 
-    if (typeof str === 'number') return str; 
-    let cleaned = str.replace(/[^\d,.-]/g, '').replace(',', '.');
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    let cleaned = str.replace(/[^\d,]/g, '');
+    cleaned = cleaned.replace(',', '.');
+    let parts = cleaned.split('.');
+    if (parts.length > 2) {
+        let last = parts.pop();
+        cleaned = parts.join('') + '.' + last;
+    }
     let val = parseFloat(cleaned);
     return isNaN(val) ? 0 : val;
 }
 
+// CORREÇÃO: Máscara de valor com suporte a valores grandes
 function setupAmountMask() {
     const amountInput = document.getElementById('itemAmount');
     if (!amountInput) return;
-    amountInput.addEventListener('input', function() {
-        let value = this.value.replace(/\D/g, '');
-        if (value === '') { this.value = ''; return; }
-        let number = parseInt(value, 10) / 100;
-        this.value = number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    function formatToCurrency(value) {
+        if (value === '' || value === null || isNaN(value)) return '';
+        let number = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(number)) return '';
+        return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    amountInput.addEventListener('input', function(e) {
+        let raw = this.value;
+        let digits = raw.replace(/[^\d,]/g, '');
+        digits = digits.replace(',', '.');
+        let number = parseFloat(digits);
+        if (isNaN(number)) {
+            this.value = '';
+            return;
+        }
+        this.value = number.toFixed(2).replace('.', ',');
     });
+    
     amountInput.addEventListener('blur', function() {
-        if (this.value === '') this.value = '0,00';
+        let value = this.value;
+        if (!value) {
+            this.value = '0,00';
+            return;
+        }
+        let number = parseCurrency(value);
+        if (isNaN(number)) {
+            this.value = '0,00';
+        } else {
+            this.value = formatToCurrency(number);
+        }
     });
 }
 
@@ -633,7 +666,7 @@ function clearSelection() {
     renderItems('expense');
 }
 
-// --- Gráficos e histórico (idênticos à versão anterior) ---
+// --- Gráficos e histórico ---
 function renderChart() {
     const { expenses } = getMonthData(APP_STATE.currentMonth, APP_STATE.currentYear);
     const totals = {};
@@ -980,7 +1013,8 @@ function openModal(type, id=null) {
         }
         if(item) {
             document.getElementById('itemDescription').value = item.description;
-            document.getElementById('itemAmount').value = item.amount.toFixed(2).replace('.', ',');
+            // CORREÇÃO: exibir valor já formatado com separador de milhar
+            document.getElementById('itemAmount').value = item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             if (item.dueDate) {
                 const dueDate = new Date(item.dueDate);
                 if (!isNaN(dueDate)) {
