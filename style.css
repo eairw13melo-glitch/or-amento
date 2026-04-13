@@ -193,3 +193,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     border: 1px solid rgba(16, 185, 129, 0.4);
     text-transform: lowercase;
 }
+
+.goal-alert {
+    font-size: 0.7rem;
+    color: #ef4444;
+    margin-top: 0.25rem;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
