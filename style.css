@@ -133,10 +133,10 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .search-input { width: 100%; padding: 0.7rem 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); margin-bottom: 1rem; font-family: inherit; }
 .search-input:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
 
-/* FILTER BAR EM DUAS COLUNAS */
+/* FILTER BAR EM 4 COLUNAS (alterado) */
 .filter-bar {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.5rem;
     margin-bottom: 1rem;
 }
@@ -158,6 +158,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     background: var(--accent-primary);
     color: white;
     border-color: var(--accent-primary);
+}
+@media (max-width: 768px) {
+    .filter-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 @media (max-width: 480px) {
     .filter-bar {
