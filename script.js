@@ -898,3 +898,26 @@ function initApp() {
 
 // --- Autenticação ---
 if(checkAuth()) { initApp(); } else { document.getElementById('loginForm').onsubmit = async e => { e.preventDefault(); if(await login(document.getElementById('password').value)){ document.getElementById('loginError').textContent=''; initApp(); } else { document.getElementById('loginError').textContent='Senha incorreta.'; document.getElementById('password').value=''; document.getElementById('password').focus(); } }; document.getElementById('password').focus(); }
+
+// --- RELÓGIO E DATA EM TEMPO REAL ---
+function updateDateTime() {
+    const now = new Date();
+    const options = { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false
+    };
+    const formatted = now.toLocaleString('pt-BR', options);
+    const datetimeElement = document.getElementById('datetime');
+    if (datetimeElement) {
+        datetimeElement.textContent = `📅 ${formatted}`;
+    }
+}
+
+// Inicia o relógio (atualiza a cada segundo)
+setInterval(updateDateTime, 1000);
+updateDateTime(); // chamada inicial imediata
