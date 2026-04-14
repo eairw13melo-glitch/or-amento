@@ -1,5 +1,5 @@
 /* ============================================
-   ORÇAMENTO FAMILIAR - V9.8 (Fundo por mês)
+   ORÇAMENTO FAMILIAR - V9.9 (Fundo por mês + Relógio + Toggle Senha)
    ============================================ */
 const APP_CONFIG = { 
     sessionKey: 'budgetAppSession', 
@@ -35,8 +35,6 @@ let customCategories = [];
 let selectedExpenseIds = new Set();
 
 // ========== CONFIGURAÇÃO DE IMAGENS POR MÊS ==========
-// Substitua as URLs abaixo pelas suas imagens (podem ser locais ou externas)
-// Exemplo: './images/janeiro.jpg', 'https://exemplo.com/fevereiro.jpg', etc.
 const monthBackgrounds = [
     './images/janeiro.jpg',      // 0 - Janeiro
     './images/fevereiro.jpg',    // 1 - Fevereiro
@@ -52,11 +50,9 @@ const monthBackgrounds = [
     './images/dezembro.jpg'      // 11 - Dezembro
 ];
 
-// Função para atualizar a imagem de fundo com base no mês atual
 function updateMonthBackground() {
     const monthSelector = document.querySelector('.month-selector');
     if (!monthSelector) return;
-    
     const imageUrl = monthBackgrounds[APP_STATE.currentMonth];
     if (imageUrl) {
         monthSelector.style.backgroundImage = `url('${imageUrl}')`;
@@ -64,12 +60,11 @@ function updateMonthBackground() {
         monthSelector.style.backgroundPosition = 'center';
         monthSelector.style.backgroundRepeat = 'no-repeat';
     } else {
-        // Fallback: remove a imagem se não houver configurada
         monthSelector.style.backgroundImage = '';
     }
 }
 
-// ========== STORAGE CORRIGIDO (categorias dentro do objeto principal) ==========
+// ========== STORAGE ==========
 function loadData() {
     try { 
         const raw = localStorage.getItem('budgetAppData'); 
@@ -855,7 +850,39 @@ function renderCategorySelect() {
 function openCategoriesModal() { const modal = document.getElementById('modalCategoriesOverlay'); const listDiv = document.getElementById('categoriesList'); if (!modal || !listDiv) return; listDiv.innerHTML = ''; customCategories.forEach((cat, idx) => { const div = document.createElement('div'); div.style.display = 'flex'; div.style.justifyContent = 'space-between'; div.style.marginBottom = '0.5rem'; div.style.alignItems = 'center'; div.innerHTML = `<span>${escapeHtml(cat.name)}</span><div><button class="btn-edit-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer;">✏️</button><button class="btn-delete-cat" data-idx="${idx}" style="background:none; border:none; cursor:pointer;">🗑️</button></div>`; listDiv.appendChild(div); }); document.querySelectorAll('.btn-edit-cat').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.idx); const newName = prompt('Editar categoria:', customCategories[idx].name); if (newName && newName.trim() && !customCategories.some(c => c.name === newName.trim())) { customCategories[idx].name = newName.trim(); saveCustomCategories(); openCategoriesModal(); } else if (newName && customCategories.some(c => c.name === newName.trim())) { showToast('Categoria já existe!', 'error'); } }); }); document.querySelectorAll('.btn-delete-cat').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.idx); if (confirm(`Excluir categoria "${customCategories[idx].name}"?`)) { customCategories.splice(idx, 1); saveCustomCategories(); openCategoriesModal(); } }); }); modal.classList.add('active'); }
 function closeCategoriesModal() { document.getElementById('modalCategoriesOverlay')?.classList.remove('active'); }
 
-// --- RenderAll (chama updateMonthBackground) ---
+// --- RELÓGIO E DATA EM TEMPO REAL ---
+function updateDateTime() {
+    const now = new Date();
+    const options = { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false
+    };
+    const formatted = now.toLocaleString('pt-BR', options);
+    const datetimeElement = document.getElementById('datetime');
+    if (datetimeElement) {
+        datetimeElement.textContent = `📅 ${formatted}`;
+    }
+}
+
+// --- TOGGLE SENHA ---
+function initPasswordToggle() {
+    const toggleBtn = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('password');
+    if (toggleBtn && passwordField) {
+        toggleBtn.addEventListener('click', function() {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+}
+
+// --- RenderAll ---
 function renderAll() {
     updateMonthDisplay();
     updateSummary();
@@ -868,7 +895,7 @@ function renderAll() {
     renderNotes();
     renderFilterBar();
     renderCategoryComparison();
-    updateMonthBackground(); // <-- NOVO: atualiza a imagem de fundo do mês
+    updateMonthBackground();
     checkDueAlerts();
     updateSelectedTotal();
 }
@@ -876,6 +903,10 @@ function renderAll() {
 // --- Inicialização ---
 function initApp() {
     loadCustomCategories(); renderCategorySelect(); if(APP_STATE.isViewOnly) applyViewOnly(); renderAll(); initTheme(); setupSmartSuggestions(); initPWA(); initCalculator(); setupAmountMask();
+    initPasswordToggle(); // Inicializa o toggle da senha
+    setInterval(updateDateTime, 1000); // Relógio atualizando a cada segundo
+    updateDateTime(); // Chamada inicial
+    
     document.getElementById('btnThemeToggle').onclick = toggleTheme;
     document.getElementById('btnPrevMonth').onclick = () => { APP_STATE.currentMonth--; if(APP_STATE.currentMonth<0){ APP_STATE.currentMonth=11; APP_STATE.currentYear--; } renderAll(); };
     document.getElementById('btnNextMonth').onclick = () => { APP_STATE.currentMonth++; if(APP_STATE.currentMonth>11){ APP_STATE.currentMonth=0; APP_STATE.currentYear++; } renderAll(); };
@@ -898,26 +929,3 @@ function initApp() {
 
 // --- Autenticação ---
 if(checkAuth()) { initApp(); } else { document.getElementById('loginForm').onsubmit = async e => { e.preventDefault(); if(await login(document.getElementById('password').value)){ document.getElementById('loginError').textContent=''; initApp(); } else { document.getElementById('loginError').textContent='Senha incorreta.'; document.getElementById('password').value=''; document.getElementById('password').focus(); } }; document.getElementById('password').focus(); }
-
-// --- RELÓGIO E DATA EM TEMPO REAL ---
-function updateDateTime() {
-    const now = new Date();
-    const options = { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
-        hour12: false
-    };
-    const formatted = now.toLocaleString('pt-BR', options);
-    const datetimeElement = document.getElementById('datetime');
-    if (datetimeElement) {
-        datetimeElement.textContent = `📅 ${formatted}`;
-    }
-}
-
-// Inicia o relógio (atualiza a cada segundo)
-setInterval(updateDateTime, 1000);
-updateDateTime(); // chamada inicial imediata
