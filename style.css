@@ -308,3 +308,31 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     .selection-controls { justify-content: center; }
     .selected-total { text-align: center; }
 }
+
+/* Relógio e data no cabeçalho */
+.datetime {
+    font-family: 'Inter', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: var(--bg-input);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    color: var(--accent-primary);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .datetime {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+        white-space: normal;
+        text-align: center;
+    }
+    .header-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+}
