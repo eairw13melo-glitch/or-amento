@@ -55,7 +55,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .calc-btn.equals { background: var(--accent-primary); color: white; }
 .calc-btn.equals:hover { background: var(--accent-primary-hover); }
 
-/* Seletor de mês com suporte a imagem de fundo */
 .month-selector {
     flex: 1;
     display: flex;
@@ -72,7 +71,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     background-repeat: no-repeat;
     overflow: hidden;
 }
-/* Overlay escuro para garantir legibilidade do texto sobre a imagem */
 .month-selector::before {
     content: '';
     position: absolute;
@@ -134,9 +132,39 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .section-header h3 { font-size: 1.1rem; font-weight: 600; }
 .search-input { width: 100%; padding: 0.7rem 1rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); margin-bottom: 1rem; font-family: inherit; }
 .search-input:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
-.filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
-.filter-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary); border-radius: 20px; font-size: 0.75rem; font-family: inherit; cursor: pointer; white-space: nowrap; transition: var(--transition); }
-.filter-btn:hover, .filter-btn.active { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+
+/* FILTER BAR EM DUAS COLUNAS */
+.filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.filter-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: normal;
+    text-align: center;
+    transition: var(--transition);
+    overflow-wrap: break-word;
+}
+.filter-btn:hover, .filter-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+@media (max-width: 480px) {
+    .filter-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
 .goals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .goal-item { background: var(--bg-input); padding: 0.5rem; border-radius: var(--radius-sm); cursor: pointer; }
 .goal-label { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; }
@@ -145,7 +173,6 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .goal-fill.over { background: var(--expense-color); }
 .goal-alert { font-size: 0.7rem; color: #ef4444; margin-top: 0.25rem; background: rgba(239, 68, 68, 0.1); padding: 0.2rem 0.4rem; border-radius: 4px; }
 
-/* LISTA DE ITENS EM GRADE DE 2 COLUNAS */
 .items-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
