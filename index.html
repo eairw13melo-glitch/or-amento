@@ -5,7 +5,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçamento Familiar</title>
+    <title>Orçamento Familiar - FAMILIA MELO</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f1117" id="themeColorMeta">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,12 +27,15 @@
         <div class="login-card">
             <div class="login-header">
                 <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <h2>Orçamento FAMILIA MELO</h2>
+                <h2>Orçamento Familiar - FAMILIA MELO</h2>
             </div>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="password">Senha de acesso</label>
-                    <input type="password" id="password" placeholder="Digite sua senha" required aria-label="Senha de acesso">
+                    <div class="password-wrapper">
+                        <input type="password" id="password" placeholder="Digite sua senha" required aria-label="Senha de acesso">
+                        <button type="button" id="togglePassword" class="toggle-password-btn" aria-label="Mostrar/Esconder senha">👁️</button>
+                    </div>
                 </div>
                 <p id="loginError" class="login-error" aria-live="polite"></p>
                 <button type="submit" class="btn btn-primary btn-login" aria-label="Entrar">Entrar</button>
@@ -42,26 +45,26 @@
     </div>
 
     <header class="header">
-    <div class="header-content">
-        <div class="logo">
-            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <h1>Orçamento Familiar - FAMILIA MELO</h1>
+        <div class="header-content">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <h1>Orçamento Familiar - FAMILIA MELO</h1>
+            </div>
+            <div class="header-actions">
+                <div class="datetime" id="datetime"></div>
+                <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema" aria-label="Alternar tema claro/escuro">🌓</button>
+                <button id="btnExcelTemplate" class="btn btn-secondary" title="Baixar modelo Excel" aria-label="Baixar modelo Excel">📥 Modelo Excel</button>
+                <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel" aria-label="Exportar para Excel">📊 Exportar XLS</button>
+                <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel" aria-label="Importar planilha Excel">📤 Importar XLS</button>
+                <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
+                <button id="btnExportPDF" class="btn btn-secondary" aria-label="Exportar relatório em PDF">📄 PDF</button>
+                <button id="btnExport" class="btn btn-secondary" aria-label="Fazer backup dos dados">💾 Backup</button>
+                <button id="btnImport" class="btn btn-secondary" aria-label="Restaurar backup">🔄 Restaurar</button>
+                <input type="file" id="fileImport" accept=".json" hidden>
+                <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
+                <button id="btnLogout" class="btn btn-secondary" aria-label="Sair da conta">🚪 Sair</button>
+            </div>
         </div>
-        <div class="header-actions">
-            <div class="datetime" id="datetime"></div>
-            <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema" aria-label="Alternar tema claro/escuro">🌓</button>
-            <button id="btnExcelTemplate" class="btn btn-secondary" title="Baixar modelo Excel" aria-label="Baixar modelo Excel">📥 Modelo Excel</button>
-            <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel" aria-label="Exportar para Excel">📊 Exportar XLS</button>
-            <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel" aria-label="Importar planilha Excel">📤 Importar XLS</button>
-            <input type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv" hidden>
-            <button id="btnExportPDF" class="btn btn-secondary" aria-label="Exportar relatório em PDF">📄 PDF</button>
-            <button id="btnExport" class="btn btn-secondary" aria-label="Fazer backup dos dados">💾 Backup</button>
-            <button id="btnImport" class="btn btn-secondary" aria-label="Restaurar backup">🔄 Restaurar</button>
-            <input type="file" id="fileImport" accept=".json" hidden>
-            <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
-            <button id="btnLogout" class="btn btn-secondary" aria-label="Sair da conta">🚪 Sair</button>
-        </div>
-    </div>
     </header>
 
     <main class="container">
@@ -123,7 +126,6 @@
             <div class="chart-container"><canvas id="evolutionChart" height="300"></canvas></div>
         </section>
 
-        <!-- NOVA SEÇÃO: COMPARAÇÃO DE CATEGORIAS -->
         <section class="section">
             <div class="section-header"><h3>📊 Comparativo de Categorias (Mês Atual vs Mês Anterior)</h3></div>
             <div class="comparison-table-wrapper">
@@ -177,7 +179,7 @@
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-    <footer class="footer"><p>Orçamento Familiar &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p></footer>
+    <footer class="footer"><p>Orçamento Familiar - FAMILIA MELO &copy; 2026 | Atalhos: <kbd>N</kbd> novo | <kbd>←→</kbd> meses | <kbd>Ctrl+F</kbd> buscar | <kbd>Esc</kbd> fechar</p></footer>
     <script src="script.js"></script>
 </body>
 </html>
