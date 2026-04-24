@@ -1,4 +1,4 @@
-const CACHE_NAME = 'budget-app-v10';   // Versão atualizada
+const CACHE_NAME = 'budget-app-v11';
 
 const STATIC_ASSETS = [
     '/',
@@ -8,7 +8,20 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/favicon.svg',
     '/icons/icon-192.png',
-    '/icons/icon-512.png'
+    '/icons/icon-512.png',
+    // IMAGENS DE FUNDO MENSAIS (cache imediato)
+    '/images/janeiro.jpg',
+    '/images/fevereiro.jpg',
+    '/images/marco.jpg',
+    '/images/abril.jpg',
+    '/images/maio.jpg',
+    '/images/junho.jpg',
+    '/images/julho.jpg',
+    '/images/agosto.jpg',
+    '/images/setembro.jpg',
+    '/images/outubro.jpg',
+    '/images/novembro.jpg',
+    '/images/dezembro.jpg'
 ];
 
 self.addEventListener('install', e => {
@@ -32,11 +45,11 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(res => {
             if (res) return res;
             return fetch(e.request).then(response => {
-                if (!response || response.status !== 200 || response.type !== 'basic') return response;
+                if (!response || response.status !== 200) return response;
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseToCache));
                 return response;
             });
-        }).catch(() => new Response('Você está offline. Os dados ainda estão disponíveis.', { status: 503 }))
+        }).catch(() => new Response('Offline', { status: 503 }))
     );
 });
