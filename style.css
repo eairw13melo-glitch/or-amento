@@ -55,3 +55,30 @@ body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(-
     .items-list { grid-template-columns: 1fr; }
     .forecast-grid { grid-template-columns: 1fr; }
 }
+
+/* ===================== FUNDO DO MÊS ===================== */
+.month-selector {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background-color: #1a1d27;           /* fallback caso imagem não carregue */
+    min-height: 140px;
+}
+
+.month-selector::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 17, 23, 0.55);   /* escurece a imagem para texto ficar legível */
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* Garante que o texto fique por cima da imagem */
+.month-selector .month-display,
+.month-selector .btn-icon {
+    position: relative;
+    z-index: 2;
+}
