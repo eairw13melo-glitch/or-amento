@@ -1,5 +1,4 @@
-const CACHE_NAME = 'budget-app-v11';
-
+const CACHE_NAME = 'budget-app-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -8,20 +7,7 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/favicon.svg',
     '/icons/icon-192.png',
-    '/icons/icon-512.png',
-    // IMAGENS DE FUNDO MENSAIS (cache imediato)
-    '/images/janeiro.jpg',
-    '/images/fevereiro.jpg',
-    '/images/marco.jpg',
-    '/images/abril.jpg',
-    '/images/maio.jpg',
-    '/images/junho.jpg',
-    '/images/julho.jpg',
-    '/images/agosto.jpg',
-    '/images/setembro.jpg',
-    '/images/outubro.jpg',
-    '/images/novembro.jpg',
-    '/images/dezembro.jpg'
+    '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -45,11 +31,11 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(res => {
             if (res) return res;
             return fetch(e.request).then(response => {
-                if (!response || response.status !== 200) return response;
+                if (!response || response.status !== 200 || response.type !== 'basic') return response;
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseToCache));
                 return response;
             });
-        }).catch(() => new Response('Offline', { status: 503 }))
+        }).catch(() => new Response('Você está offline. Abra o app novamente quando tiver conexão.', { status: 503 }))
     );
 });
