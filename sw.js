@@ -1,4 +1,5 @@
-const CACHE_NAME = 'budget-app-v3';
+const CACHE_NAME = 'budget-app-v4'; // aumentei a versão
+
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -7,7 +8,20 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/favicon.svg',
     '/icons/icon-192.png',
-    '/icons/icon-512.png'
+    '/icons/icon-512.png',
+    // Backgrounds mensais
+    '/images/janeiro.jpg',
+    '/images/fevereiro.jpg',
+    '/images/marco.jpg',
+    '/images/abril.jpg',
+    '/images/maio.jpg',
+    '/images/junho.jpg',
+    '/images/julho.jpg',
+    '/images/agosto.jpg',
+    '/images/setembro.jpg',
+    '/images/outubro.jpg',
+    '/images/novembro.jpg',
+    '/images/dezembro.jpg'
 ];
 
 self.addEventListener('install', e => {
@@ -36,6 +50,6 @@ self.addEventListener('fetch', e => {
                 caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseToCache));
                 return response;
             });
-        }).catch(() => new Response('Você está offline. Abra o app novamente quando tiver conexão.', { status: 503 }))
+        }).catch(() => new Response('Offline – dados salvos localmente.', { status: 503 }))
     );
 });
