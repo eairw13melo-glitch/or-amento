@@ -45,14 +45,20 @@
     </div>
 
     <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <h1>Orçamento Familiar - FAMILIA MELO</h1>
+    <div class="header-content">
+        <div class="logo">
+            <div class="logo-circle">💰</div>
+            <div>
+                <h1>Orçamento Familiar</h1>
+                <small>FAMÍLIA MELO</small>
             </div>
+        </div>
+        
+        <div class="header-right">
+            <div class="datetime" id="datetime"></div>
+            
             <div class="header-actions">
-                <div class="datetime" id="datetime"></div>
-                <button id="btnThemeToggle" class="btn btn-icon" title="Alternar tema" aria-label="Alternar tema claro/escuro">🌓</button>
+                <button id="btnThemeToggle" class="btn-icon" title="Alternar tema">🌓</button>
                 <button id="btnExcelTemplate" class="btn btn-secondary" title="Baixar modelo Excel" aria-label="Baixar modelo Excel">📥 Modelo Excel</button>
                 <button id="btnExportExcel" class="btn btn-secondary" title="Exportar Excel" aria-label="Exportar para Excel">📊 Exportar XLS</button>
                 <button id="btnImportExcel" class="btn btn-secondary" title="Importar Excel" aria-label="Importar planilha Excel">📤 Importar XLS</button>
@@ -63,6 +69,7 @@
                 <input type="file" id="fileImport" accept=".json" hidden>
                 <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
                 <button id="btnLogout" class="btn btn-secondary" aria-label="Sair da conta">🚪 Sair</button>
+               </div>
             </div>
         </div>
     </header>
