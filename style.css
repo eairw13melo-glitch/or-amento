@@ -350,3 +350,31 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
         text-align: center;
     }
 }
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.logo-circle {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.small { font-size: 0.75rem; opacity: 0.8; }
