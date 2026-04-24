@@ -27,7 +27,7 @@ let selectedExpenseIds = new Set();
 
 // ==================== IMAGENS DE FUNDO POR MÊS (corrigido + debug) ====================
 const monthBackgrounds = [
-    'images/janeiro.jpg',
+    '/images/janeiro.jpg',
     './images/fevereiro.jpg',
     './images/marco.jpg',      // ← use "marco.jpg" se você salvou sem ç
     './images/abril.jpg',
