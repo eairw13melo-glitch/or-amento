@@ -24,6 +24,15 @@ const CATEGORY_LABELS = {
     vestuario: '👕 Vestuário', outros: '📦 Outros'
 };
 
+// Forçar atualização do Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+            registration.unregister();
+        }
+    });
+}
+
 let categoryChart = null;
 let evolutionChart = null;
 let customCategories = [];
