@@ -9,22 +9,49 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     
+    <!-- Cache control - resolve problema de janela anônima -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#0f1117" id="themeColorMeta">
-
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orçamento">
 </head>
 <body>
-    <!-- Login Screen (mantido igual) -->
-    <div id="loginScreen" class="login-screen"> ... (conteúdo original do login) ... </div>
+    
+    <!-- 🔐 Login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-circle" style="width:64px;height:64px;font-size:2rem;margin-bottom:1rem;">💰</div>
+                <h2>Orçamento Familiar</h2>
+                <p>FAMÍLIA MELO</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="password">Senha de acesso</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" placeholder="Digite sua senha" required>
+                        <button type="button" id="togglePassword" class="toggle-password-btn">👁️</button>
+                    </div>
+                </div>
+                <p id="loginError" class="login-error"></p>
+                <button type="submit" class="btn btn-primary btn-login">Entrar</button>
+            </form>
+            <p class="login-hint">Primeiro acesso? Defina sua senha agora.</p>
+        </div>
+    </div>
 
     <!-- HEADER MODERNIZADO -->
     <header class="header">
@@ -36,18 +63,17 @@
                     <small>FAMÍLIA MELO</small>
                 </div>
             </div>
-            <div class="header-right" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <div class="header-right" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                 <div class="datetime" id="datetime"></div>
                 <div class="header-actions">
-                    <!-- todos os botões que você já tinha -->
-                    <button id="btnThemeToggle" class="btn-icon">🌓</button>
-                    <button id="btnExcelTemplate" class="btn btn-secondary">📥 Modelo</button>
-                    <button id="btnExportExcel" class="btn btn-secondary">📊 XLS</button>
-                    <button id="btnImportExcel" class="btn btn-secondary">📤 Importar</button>
+                    <button id="btnThemeToggle" class="btn-icon" title="Alternar tema">🌓</button>
+                    <button id="btnExcelTemplate" class="btn btn-secondary">📥 Modelo Excel</button>
+                    <button id="btnExportExcel" class="btn btn-secondary">📊 Exportar XLS</button>
+                    <button id="btnImportExcel" class="btn btn-secondary">📤 Importar XLS</button>
                     <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
                     <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
                     <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
-                    <button id="btnReset" class="btn btn-danger">Resetar</button>
+                    <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
                     <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
                 </div>
             </div>
@@ -55,22 +81,98 @@
     </header>
 
     <main class="container">
-        <!-- Month selector + Calculator + Mini Calendar (mantenha o seu código original aqui) -->
-        <section class="month-selector-wrapper"> ... (seu código original) ... </section>
+        
+        <!-- Month Selector + Calculator + Mini Calendar -->
+        <section class="month-selector-wrapper">
+            <!-- Mantenha todo o conteúdo original desta seção (calculator + month-selector + mini-calendar) -->
+            <!-- (cole aqui o conteúdo original da section.month-selector-wrapper do seu arquivo antigo) -->
+        </section>
 
-        <!-- Summary Cards (mantenha o seu código original) -->
-        <section class="summary-cards"> ... (seu código original) ... </section>
+        <!-- Summary Cards -->
+        <section class="summary-cards">
+            <!-- Mantenha todo o conteúdo original desta seção -->
+            <!-- (cole aqui o conteúdo original da section.summary-cards) -->
+        </section>
 
-        <!-- NOVA SEÇÃO: PREVISÃO -->
+        <!-- 🔥 NOVA SEÇÃO: PREVISÃO DOS PRÓXIMOS 6 MESES -->
         <section class="section">
-            <div class="section-header"><h3>📈 Previsão dos Próximos 6 Meses</h3></div>
+            <div class="section-header">
+                <h3>📈 Previsão dos Próximos 6 Meses</h3>
+            </div>
             <div id="forecastContainer" class="forecast-grid"></div>
         </section>
 
-        <!-- Receitas, Despesas, Gráficos, etc. (mantenha todo o resto do seu HTML original) -->
-        <!-- ... resto do seu conteúdo original ... -->
+        <!-- Receitas -->
+        <section class="section">
+            <div class="section-header"><h3>💰 Receitas</h3><button class="btn btn-primary btn-add" data-type="income">➕ Adicionar</button></div>
+            <div class="items-list" id="incomeList"></div>
+            <div class="empty-state" id="incomeEmpty"><p>Nenhuma receita adicionada</p></div>
+        </section>
+
+        <!-- Despesas -->
+        <section class="section">
+            <div class="section-header"><h3>📋 Despesas</h3><button class="btn btn-primary btn-add" data-type="expense">➕ Adicionar</button></div>
+            <input type="search" id="searchExpenses" class="search-input" placeholder="🔍 Buscar despesa...">
+            <div class="filter-bar" id="filterBar"></div>
+            <div class="goals-grid" id="goalsGrid"></div>
+            <div class="items-list" id="expenseList"></div>
+            <div class="empty-state" id="expenseEmpty"><p>Nenhuma despesa adicionada</p></div>
+            <div class="expense-footer">
+                <div class="selection-controls">
+                    <button id="btnSelectAll" class="btn btn-secondary btn-sm">✅ Selecionar todas</button>
+                    <button id="btnClearSelection" class="btn btn-secondary btn-sm">❌ Limpar seleção</button>
+                </div>
+                <div class="selected-total">💰 <strong>Total selecionado:</strong> <span id="selectedTotal">R$ 0,00</span></div>
+            </div>
+        </section>
+
+        <!-- Gráfico de Despesas por Categoria -->
+        <section class="section chart-section">
+            <div class="section-header"><h3>📊 Despesas por Categoria</h3></div>
+            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+        </section>
+
+        <!-- Evolução Mensal -->
+        <section class="section">
+            <div class="section-header"><h3>📈 Evolução Mensal (últimos 12 meses)</h3></div>
+            <div class="chart-container"><canvas id="evolutionChart" height="300"></canvas></div>
+        </section>
+
+        <!-- Comparativo de Categorias -->
+        <section class="section">
+            <div class="section-header"><h3>📊 Comparativo de Categorias (Mês Atual vs Mês Anterior)</h3></div>
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table" id="comparisonTable">
+                    <thead>
+                        <tr><th>Categoria</th><th>Mês Atual</th><th>Mês Anterior</th><th>Diferença (R$)</th><th>Diferença (%)</th><th>Tendência</th></tr>
+                    </thead>
+                    <tbody id="comparisonBody"></tbody>
+                </table>
+            </div>
+            <div class="empty-state" id="comparisonEmpty"><p>Adicione despesas nos dois meses para ver a comparação.</p></div>
+        </section>
+
+        <!-- Agenda / Anotações -->
+        <section class="section">
+            <div class="section-header"><h3>📝 Agenda / Anotações</h3></div>
+            <div class="notes-input-area"><input type="text" id="noteInput" placeholder="Ex: Revisão do carro em março..."><button class="btn btn-primary" id="btnAddNote">Adicionar</button></div>
+            <div class="notes-list" id="notesList"></div>
+            <div class="empty-state" id="notesEmpty"><p>Nenhuma anotação para este mês</p></div>
+        </section>
+
+        <!-- Histórico Mensal -->
+        <section class="section">
+            <div class="section-header"><h3>📅 Histórico Mensal</h3></div>
+            <div class="history-table-wrapper"><table class="history-table" id="historyTable"><thead><tr><th>Mês/Ano</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+            <div class="empty-state" id="historyEmpty"><p>Histórico aparecerá conforme você preencher os meses</p></div>
+        </section>
     </main>
 
+    <!-- Modal e demais elementos (mantenha exatamente como estava no seu arquivo original) -->
+    <!-- Modal principal, modal de categorias, toast, etc. -->
+    <!-- (Cole aqui todo o resto do HTML original a partir do modalOverlay até o final) -->
+
+    <div class="toast-container" id="toastContainer"></div>
     <footer class="footer"><p>Orçamento Familiar - FAMÍLIA MELO © 2026</p></footer>
 
     <script src="script.js"></script>
