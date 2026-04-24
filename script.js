@@ -41,26 +41,41 @@ const monthBackgrounds = [
     './images/dezembro.jpg'
 ];
 
+// ==================== OTIMIZAÇÃO DE IMAGENS DE FUNDO ====================
+const monthBackgrounds = [
+    './images/janeiro.jpg', './images/fevereiro.jpg', './images/marco.jpg',
+    './images/abril.jpg', './images/maio.jpg', './images/junho.jpg',
+    './images/julho.jpg', './images/agosto.jpg', './images/setembro.jpg',
+    './images/outubro.jpg', './images/novembro.jpg', './images/dezembro.jpg'
+];
+
+// Pré-carrega a imagem atual + próxima (melhora troca de mês)
+let preloadedImages = new Map();
+
+function preloadImage(url) {
+    if (preloadedImages.has(url)) return;
+    const img = new Image();
+    img.src = url;
+    preloadedImages.set(url, img);
+}
+
 function updateMonthBackground() {
     const monthSelector = document.querySelector('.month-selector');
-    if (!monthSelector) {
-        console.warn('❌ Elemento .month-selector não encontrado');
-        return;
-    }
+    if (!monthSelector) return;
 
     const url = monthBackgrounds[APP_STATE.currentMonth];
-    console.log(`🔍 Tentando carregar fundo: ${url} (mês ${APP_STATE.currentMonth})`);
+    if (!url) return;
 
-    if (url) {
-        monthSelector.style.backgroundImage = `url('${url}')`;
-        monthSelector.style.backgroundSize = 'cover';
-        monthSelector.style.backgroundPosition = 'center';
-        monthSelector.style.backgroundRepeat = 'no-repeat';
-        monthSelector.style.transition = 'background-image 0.8s ease';
-        console.log('✅ Fundo aplicado com sucesso');
-    } else {
-        console.warn('⚠️ URL de imagem não encontrada');
-    }
+    // Pré-carrega a imagem atual e a do próximo mês
+    preloadImage(url);
+    const nextMonth = (APP_STATE.currentMonth + 1) % 12;
+    preloadImage(monthBackgrounds[nextMonth]);
+
+    monthSelector.style.backgroundImage = `url('${url}')`;
+    monthSelector.style.backgroundSize = 'cover';
+    monthSelector.style.backgroundPosition = 'center';
+    monthSelector.style.backgroundRepeat = 'no-repeat';
+    monthSelector.style.transition = 'background-image 0.6s ease-in-out';
 }
 
 // ==================== PREVISÃO 6 MESES ====================
@@ -147,6 +162,8 @@ function initApp() {
     // ... seu initApp original ...
     renderAll(); // garante que a previsão carregue
 }
+// Pré-carrega imagem do mês atual ao iniciar
+preloadImage(monthBackgrounds[APP_STATE.currentMonth]);
 
 // ==================== FIM DO SCRIPT.JS V10.0 ====================
 
