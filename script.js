@@ -25,23 +25,41 @@ let evolutionChart = null;
 let customCategories = [];
 let selectedExpenseIds = new Set();
 
-// ==================== IMAGENS DE FUNDO POR MÊS ====================
+// ==================== IMAGENS DE FUNDO POR MÊS (corrigido + debug) ====================
 const monthBackgrounds = [
-    './images/janeiro.jpg', './images/fevereiro.jpg', './images/marco.jpg',
-    './images/abril.jpg', './images/maio.jpg', './images/junho.jpg',
-    './images/julho.jpg', './images/agosto.jpg', './images/setembro.jpg',
-    './images/outubro.jpg', './images/novembro.jpg', './images/dezembro.jpg'
+    './images/janeiro.jpg',
+    './images/fevereiro.jpg',
+    './images/marco.jpg',      // ← use "marco.jpg" se você salvou sem ç
+    './images/abril.jpg',
+    './images/maio.jpg',
+    './images/junho.jpg',
+    './images/julho.jpg',
+    './images/agosto.jpg',
+    './images/setembro.jpg',
+    './images/outubro.jpg',
+    './images/novembro.jpg',
+    './images/dezembro.jpg'
 ];
 
 function updateMonthBackground() {
     const monthSelector = document.querySelector('.month-selector');
-    if (!monthSelector) return;
+    if (!monthSelector) {
+        console.warn('❌ Elemento .month-selector não encontrado');
+        return;
+    }
+
     const url = monthBackgrounds[APP_STATE.currentMonth];
+    console.log(`🔍 Tentando carregar fundo: ${url} (mês ${APP_STATE.currentMonth})`);
+
     if (url) {
         monthSelector.style.backgroundImage = `url('${url}')`;
         monthSelector.style.backgroundSize = 'cover';
         monthSelector.style.backgroundPosition = 'center';
         monthSelector.style.backgroundRepeat = 'no-repeat';
+        monthSelector.style.transition = 'background-image 0.8s ease';
+        console.log('✅ Fundo aplicado com sucesso');
+    } else {
+        console.warn('⚠️ URL de imagem não encontrada');
     }
 }
 
