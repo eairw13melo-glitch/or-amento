@@ -1,4 +1,4 @@
-const CACHE_NAME = 'budget-app-v10';  // ← Versão atualizada (importante!)
+const CACHE_NAME = 'budget-app-v10';   // Versão atualizada
 
 const STATIC_ASSETS = [
     '/',
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
     e.waitUntil(
         caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
     );
-    self.skipWaiting(); // Força ativação imediata
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -24,7 +24,7 @@ self.addEventListener('activate', e => {
             keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
         ))
     );
-    self.clients.claim(); // Controla todas as abas imediatamente
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', e => {
@@ -32,18 +32,11 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(res => {
             if (res) return res;
             return fetch(e.request).then(response => {
-                if (!response || response.status !== 200 || response.type !== 'basic') {
-                    return response;
-                }
+                if (!response || response.status !== 200 || response.type !== 'basic') return response;
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseToCache));
                 return response;
             });
-        }).catch(() => {
-            return new Response('Você está offline. Os dados salvos ainda estão disponíveis.', { 
-                status: 503, 
-                statusText: 'Offline' 
-            });
-        })
+        }).catch(() => new Response('Você está offline. Os dados ainda estão disponíveis.', { status: 503 }))
     );
 });
