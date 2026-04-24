@@ -53,15 +53,19 @@ const monthBackgrounds = [
 function updateMonthBackground() {
     const monthSelector = document.querySelector('.month-selector');
     if (!monthSelector) return;
+
     const imageUrl = monthBackgrounds[APP_STATE.currentMonth];
-    if (imageUrl) {
+    
+    // Preload para evitar flash
+    const img = new Image();
+    img.src = imageUrl;
+    img.onload = () => {
         monthSelector.style.backgroundImage = `url('${imageUrl}')`;
-        monthSelector.style.backgroundSize = 'cover';
-        monthSelector.style.backgroundPosition = 'center';
-        monthSelector.style.backgroundRepeat = 'no-repeat';
-    } else {
-        monthSelector.style.backgroundImage = '';
-    }
+    };
+    img.onerror = () => {
+        console.warn(`Imagem de fundo não carregada: ${imageUrl}`);
+        monthSelector.style.backgroundImage = ''; // fallback
+    };
 }
 
 // ========== STORAGE ==========
