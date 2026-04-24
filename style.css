@@ -70,13 +70,14 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
 .calc-btn.equals { background: var(--accent-primary); color: white; }
 .calc-btn.equals:hover { background: var(--accent-primary-hover); }
 
+/* ====================== MONTH SELECTOR + BACKGROUNDS ====================== */
 .month-selector {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1.5rem;
-    padding: 1rem;
+    padding: 1.5rem;
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
@@ -85,27 +86,84 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: v
     background-position: center;
     background-repeat: no-repeat;
     overflow: hidden;
+    transition: background-image 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-md);
 }
+
+/* Overlay sofisticado (gradient + vignette) */
 .month-selector::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(15, 17, 23, 0.65) 0%,
+        rgba(15, 17, 23, 0.85) 50%,
+        rgba(15, 17, 23, 0.95) 100%
+    );
     z-index: 1;
     border-radius: inherit;
+    pointer-events: none;
 }
+
+/* Vignette sutil nos cantos */
+.month-selector::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.3) 100%);
+    z-index: 2;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
 .month-selector .btn-icon,
 .month-selector .month-display {
     position: relative;
-    z-index: 2;
+    z-index: 3;
 }
-.month-display h2,
+
+.month-display {
+    text-align: center;
+    min-width: 220px;
+}
+
+.month-display h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    color: #fff;
+    text-shadow: 
+        0 2px 8px rgba(0,0,0,0.6),
+        0 4px 20px rgba(0,0,0,0.4);
+    margin-bottom: 0.1rem;
+}
+
 .month-display span {
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    font-size: 1rem;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* Transição suave ao trocar de mês */
+.month-selector {
+    animation: backgroundFade 0.6s ease forwards;
+}
+
+@keyframes backgroundFade {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .month-selector {
+        padding: 1rem;
+    }
+    .month-display h2 {
+        font-size: 1.5rem;
+    }
 }
 .month-display { text-align: center; min-width: 200px; }
 .month-display h2 { font-size: 1.5rem; font-weight: 700; text-transform: capitalize; }
