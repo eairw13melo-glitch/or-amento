@@ -174,6 +174,9 @@ function renderAll() {
     updateSelectedTotal();
 }
 
+// Forçar atualização do Service Worker
+navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+
 // ==================== INIT ====================
 function initApp() {
     loadCustomCategories();
