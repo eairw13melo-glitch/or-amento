@@ -9,28 +9,24 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     
-    <!-- Cache control - resolve problema de janela anônima -->
+    <!-- Correção de cache / Service Worker -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#0f1117" id="themeColorMeta">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Orçamento">
 </head>
 <body>
     
-    <!-- 🔐 Login -->
+    <!-- LOGIN -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-header">
@@ -53,7 +49,7 @@
         </div>
     </div>
 
-    <!-- HEADER MODERNIZADO -->
+    <!-- HEADER MODERNO -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -63,7 +59,7 @@
                     <small>FAMÍLIA MELO</small>
                 </div>
             </div>
-            <div class="header-right" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <div class="header-right">
                 <div class="datetime" id="datetime"></div>
                 <div class="header-actions">
                     <button id="btnThemeToggle" class="btn-icon" title="Alternar tema">🌓</button>
@@ -73,7 +69,7 @@
                     <button id="btnExportPDF" class="btn btn-secondary">📄 PDF</button>
                     <button id="btnExport" class="btn btn-secondary">💾 Backup</button>
                     <button id="btnImport" class="btn btn-secondary">🔄 Restaurar</button>
-                    <button id="btnReset" class="btn btn-danger">⚠️ Resetar Tudo</button>
+                    <button id="btnReset" class="btn btn-danger">⚠️ Resetar</button>
                     <button id="btnLogout" class="btn btn-secondary">🚪 Sair</button>
                 </div>
             </div>
@@ -82,23 +78,19 @@
 
     <main class="container">
         
-        <!-- Month Selector + Calculator + Mini Calendar -->
+        <!-- Month Selector + Calculator + Mini Calendar (seu conteúdo original) -->
         <section class="month-selector-wrapper">
-            <!-- Mantenha todo o conteúdo original desta seção (calculator + month-selector + mini-calendar) -->
-            <!-- (cole aqui o conteúdo original da section.month-selector-wrapper do seu arquivo antigo) -->
+            <!-- Cole aqui todo o conteúdo original da sua section.month-selector-wrapper -->
         </section>
 
-        <!-- Summary Cards -->
+        <!-- Summary Cards (seu conteúdo original) -->
         <section class="summary-cards">
-            <!-- Mantenha todo o conteúdo original desta seção -->
-            <!-- (cole aqui o conteúdo original da section.summary-cards) -->
+            <!-- Cole aqui todo o conteúdo original da sua section.summary-cards -->
         </section>
 
-        <!-- 🔥 NOVA SEÇÃO: PREVISÃO DOS PRÓXIMOS 6 MESES -->
+        <!-- 🔥 PREVISÃO DOS PRÓXIMOS 6 MESES -->
         <section class="section">
-            <div class="section-header">
-                <h3>📈 Previsão dos Próximos 6 Meses</h3>
-            </div>
+            <div class="section-header"><h3>📈 Previsão dos Próximos 6 Meses</h3></div>
             <div id="forecastContainer" class="forecast-grid"></div>
         </section>
 
